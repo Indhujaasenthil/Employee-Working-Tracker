@@ -1,0 +1,129 @@
+@if (authService.authenticated()) {
+  <header class="application-header">
+    <a
+      class="brand"
+      routerLink="/dashboard">
+
+      <span class="brand-icon">
+        EW
+      </span>
+
+      <span class="brand-text">
+        <strong>
+          Employee Working Tracker
+        </strong>
+
+        <small>
+          {{ authService.currentUserName() }}
+          ·
+          {{ authService.currentUserRole() }}
+        </small>
+      </span>
+    </a>
+
+    <nav class="navigation">
+      <a
+        routerLink="/dashboard"
+        routerLinkActive="active">
+        Dashboard
+      </a>
+
+      @if (canManageEmployees()) {
+        <a
+          routerLink="/employees"
+          routerLinkActive="active">
+          Employees
+        </a>
+
+        <a
+          routerLink="/employee-managers"
+          routerLinkActive="active">
+          Managers
+        </a>
+      }
+
+      @if (canManageMasters()) {
+        <a
+          routerLink="/departments"
+          routerLinkActive="active">
+          Departments
+        </a>
+
+        <a
+          routerLink="/designations"
+          routerLinkActive="active">
+          Designations
+        </a>
+      }
+
+      @if (canManageProjects()) {
+        <a
+          routerLink="/projects"
+          routerLinkActive="active">
+          Projects
+        </a>
+
+        <a
+          routerLink="/project-team"
+          routerLinkActive="active">
+          Project Team
+        </a>
+      }
+
+      <a
+        routerLink="/tasks"
+        routerLinkActive="active">
+        Tasks
+      </a>
+
+      <a
+        routerLink="/work-logs"
+        routerLinkActive="active">
+        Work Logs
+      </a>
+
+      @if (canApproveWorkLogs()) {
+        <a
+          routerLink="/work-log-approvals"
+          routerLinkActive="active">
+          Approvals
+        </a>
+      }
+
+      <a
+        routerLink="/reports"
+        routerLinkActive="active">
+        Reports
+      </a>
+
+      @if (isAdministrator()) {
+        <a
+          routerLink="/users"
+          routerLinkActive="active">
+          Users
+        </a>
+      }
+
+      <a
+        routerLink="/profile"
+        routerLinkActive="active">
+        Profile
+      </a>
+
+      <a
+        routerLink="/change-password"
+        routerLinkActive="active">
+        Password
+      </a>
+
+      <button
+        type="button"
+        class="logout-button"
+        (click)="logout()">
+        Logout
+      </button>
+    </nav>
+  </header>
+}
+
+<router-outlet />

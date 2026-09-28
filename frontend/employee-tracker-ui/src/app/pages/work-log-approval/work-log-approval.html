@@ -1,0 +1,137 @@
+<main class="page-container">
+  <header class="page-header">
+    <div>
+      <h1>Work Log Approval</h1>
+      <p>
+        Review submitted employee work logs
+      </p>
+    </div>
+
+    <button
+      type="button"
+      class="primary-button"
+      [disabled]="loading()"
+      (click)="loadWorkLogs()">
+      Refresh
+    </button>
+  </header>
+
+  @if (errorMessage()) {
+    <div class="message error">
+      {{ errorMessage() }}
+    </div>
+  }
+
+  @if (successMessage()) {
+    <div class="message success">
+      {{ successMessage() }}
+    </div>
+  }
+
+  <section class="list-card">
+    <div class="section-header">
+      <div>
+        <h2>Submitted Work Logs</h2>
+
+        <p>
+          Pending approvals:
+          {{ workLogs().length }}
+        </p>
+      </div>
+    </div>
+
+    @if (loading()) {
+      <div class="message">
+        Loading submitted work logs...
+      </div>
+    } @else if (workLogs().length === 0) {
+      <div class="message">
+        No submitted work logs are waiting
+        for approval.
+      </div>
+    } @else {
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Work Date</th>
+              <th>Employee</th>
+              <th>Project</th>
+              <th>Task</th>
+              <th>Hours</th>
+              <th>Progress</th>
+              <th>Description</th>
+              <th>Blockers</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (
+              workLog of workLogs();
+              track workLog.id
+            ) {
+              <tr>
+                <td>
+                  {{ workLog.workDate }}
+                </td>
+
+                <td>
+                  {{ workLog.employeeName }}
+                </td>
+
+                <td>
+                  {{ workLog.projectName }}
+                </td>
+
+                <td>
+                  {{ workLog.taskTitle || '-' }}
+                </td>
+
+                <td>
+                  {{ workLog.hoursWorked }}
+                </td>
+
+                <td>
+                  {{ workLog.progressPercentage }}%
+                </td>
+
+                <td class="description-cell">
+                  {{ workLog.workDescription }}
+                </td>
+
+                <td class="description-cell">
+                  {{ workLog.blockers || '-' }}
+                </td>
+
+                <td>
+                  <div class="action-buttons">
+                    <button
+                      type="button"
+                      class="approve-button"
+                      [disabled]="
+                        processingId() === workLog.id
+                      "
+                      (click)="approve(workLog)">
+                      Approve
+                    </button>
+
+                    <button
+                      type="button"
+                      class="reject-button"
+                      [disabled]="
+                        processingId() === workLog.id
+                      "
+                      (click)="reject(workLog)">
+                      Reject
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } 
+  </section>
+</main>

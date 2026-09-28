@@ -1,0 +1,309 @@
+<main class="page-container">
+  <header class="page-header">
+    <div>
+      <h1>Project Team</h1>
+      <p>Assign employees to projects</p>
+    </div>
+
+    <button
+      class="refresh-button"
+      type="button"
+      (click)="loadPageData()"
+      [disabled]="loading()">
+      Refresh
+    </button>
+  </header>
+
+  <section class="form-card">
+    <div class="section-heading">
+      <h2>
+        {{ editingId() === null
+          ? 'Assign Employee'
+          : 'Edit Project Assignment' }}
+      </h2>
+
+      <p>
+        Select a project and assign an employee.
+      </p>
+    </div>
+
+    @if (successMessage()) {
+      <div class="message success">
+        {{ successMessage() }}
+      </div>
+    }
+
+    @if (errorMessage()) {
+      <div class="message error">
+        {{ errorMessage() }}
+      </div>
+    }
+
+    <form
+      [formGroup]="projectMemberForm"
+      (ngSubmit)="saveProjectMember()">
+
+      <div class="form-grid">
+        <div class="form-field">
+          <label for="projectId">
+            Project
+          </label>
+
+          <select
+            id="projectId"
+            formControlName="projectId">
+
+            <option [ngValue]="0">
+              Select project
+            </option>
+
+            @for (
+              project of projects();
+              track project.id
+            ) {
+              <option [ngValue]="project.id">
+                {{ project.projectCode }} -
+                {{ project.projectName }}
+              </option>
+            }
+          </select>
+
+          @if (isInvalid('projectId')) {
+            <small class="validation-error">
+              Project is required.
+            </small>
+          }
+
+          @if (projects().length === 0) {
+            <small class="information-message">
+              Add an active project first.
+            </small>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="employeeId">
+            Employee
+          </label>
+
+          <select
+            id="employeeId"
+            formControlName="employeeId">
+
+            <option [ngValue]="0">
+              Select employee
+            </option>
+
+            @for (
+              employee of employees();
+              track employee.id
+            ) {
+              <option [ngValue]="employee.id">
+                {{ employee.employeeCode }} -
+                {{ employee.fullName }}
+              </option>
+            }
+          </select>
+
+          @if (isInvalid('employeeId')) {
+            <small class="validation-error">
+              Employee is required.
+            </small>
+          }
+
+          @if (employees().length === 0) {
+            <small class="information-message">
+              Add an active employee first.
+            </small>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="projectRole">
+            Project Role
+          </label>
+
+          <input
+            id="projectRole"
+            type="text"
+            formControlName="projectRole"
+            placeholder="Example: Developer"
+            maxlength="100">
+
+          @if (isInvalid('projectRole')) {
+            <small class="validation-error">
+              Project role is required.
+            </small>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="assignedDate">
+            Assigned Date
+          </label>
+
+          <input
+            id="assignedDate"
+            type="date"
+            formControlName="assignedDate">
+
+          @if (isInvalid('assignedDate')) {
+            <small class="validation-error">
+              Assigned date is required.
+            </small>
+          }
+        </div>
+
+        <div class="checkbox-field full-width">
+          <input
+            id="isActive"
+            type="checkbox"
+            formControlName="isActive">
+
+          <label for="isActive">
+            Active Assignment
+          </label>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button
+          class="primary-button"
+          type="submit"
+          [disabled]="saving()">
+
+          @if (saving()) {
+            Saving...
+          } @else if (editingId() === null) {
+            Assign Employee
+          } @else {
+            Update Assignment
+          }
+        </button>
+
+        <button
+          class="secondary-button"
+          type="button"
+          (click)="resetForm()"
+          [disabled]="saving()">
+          {{ editingId() === null ? 'Clear' : 'Cancel' }}
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <section class="list-card">
+    <div class="section-heading">
+      <h2>Project Team List</h2>
+
+      <p>
+        Total assignments:
+        {{ projectMembers().length }}
+      </p>
+    </div>
+
+    @if (loading()) {
+      <div class="empty-message">
+        Loading project team...
+      </div>
+    } @else if (projectMembers().length === 0) {
+      <div class="empty-message">
+        No project team assignments found.
+      </div>
+    } @else {
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Project</th>
+              <th>Employee</th>
+              <th>Department</th>
+              <th>Designation</th>
+              <th>Project Role</th>
+              <th>Assigned Date</th>
+              <th>Status</th>
+              <th class="actions-column">
+                Actions
+              </th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (
+              member of projectMembers();
+              track member.id
+            ) {
+              <tr>
+                <td>
+                  <strong>
+                    {{ member.projectCode }}
+                  </strong>
+
+                  <div class="secondary-text">
+                    {{ member.projectName }}
+                  </div>
+                </td>
+
+                <td>
+                  <strong>
+                    {{ member.employeeCode }}
+                  </strong>
+
+                  <div class="secondary-text">
+                    {{ member.employeeName }}
+                  </div>
+                </td>
+
+                <td>
+                  {{ member.department }}
+                </td>
+
+                <td>
+                  {{ member.designation }}
+                </td>
+
+                <td>
+                  {{ member.projectRole }}
+                </td>
+
+                <td>
+                  {{
+                    member.assignedDate.substring(0, 10)
+                  }}
+                </td>
+
+                <td>
+                  <span
+                    class="status"
+                    [class.active]="member.isActive"
+                    [class.inactive]="!member.isActive">
+
+                    {{ member.isActive
+                      ? 'Active'
+                      : 'Inactive' }}
+                  </span>
+                </td>
+
+                <td class="actions">
+                  <button
+                    class="edit-button"
+                    type="button"
+                    (click)="editProjectMember(member)">
+                    Edit
+                  </button>
+
+                  <button
+                    class="delete-button"
+                    type="button"
+                    (click)="deleteProjectMember(member)">
+                    Remove
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+</main>

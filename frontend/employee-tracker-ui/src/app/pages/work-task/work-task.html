@@ -1,0 +1,482 @@
+<main class="page-container">
+  <header class="page-header">
+    <div>
+      <h1>Task Management</h1>
+
+      <p>
+        @if (canManageTasks()) {
+          Create and assign project tasks
+        } @else {
+          View assigned tasks and update status
+        }
+      </p>
+    </div>
+
+    <button
+      class="refresh-button"
+      type="button"
+      [disabled]="loading()"
+      (click)="loadPageData()">
+
+      {{ loading() ? 'Loading...' : 'Refresh' }}
+    </button>
+  </header>
+
+  @if (successMessage()) {
+    <div class="message success">
+      {{ successMessage() }}
+    </div>
+  }
+
+  @if (errorMessage()) {
+    <div class="message error">
+      {{ errorMessage() }}
+    </div>
+  }
+
+  @if (canManageTasks()) {
+    <section class="form-card">
+      <div class="section-heading">
+        <h2>
+          {{
+            editingId() === null
+              ? 'Add Task'
+              : 'Edit Task'
+          }}
+        </h2>
+
+        <p>
+          Enter the task information below.
+        </p>
+      </div>
+
+      <form
+        [formGroup]="workTaskForm"
+        (ngSubmit)="saveWorkTask()">
+
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="taskCode">
+              Task Code
+            </label>
+
+            <input
+              id="taskCode"
+              type="text"
+              formControlName="taskCode"
+              maxlength="20"
+              placeholder="Example: TSK001">
+
+            @if (isInvalid('taskCode')) {
+              <small class="validation-error">
+                Task code is required.
+              </small>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="taskTitle">
+              Task Title
+            </label>
+
+            <input
+              id="taskTitle"
+              type="text"
+              formControlName="taskTitle"
+              maxlength="150"
+              placeholder="Enter task title">
+
+            @if (isInvalid('taskTitle')) {
+              <small class="validation-error">
+                Task title is required.
+              </small>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="projectId">
+              Project
+            </label>
+
+            <select
+              id="projectId"
+              formControlName="projectId">
+
+              <option [ngValue]="0">
+                Select project
+              </option>
+
+              @for (
+                project of projects();
+                track project.id
+              ) {
+                <option [ngValue]="project.id">
+                  {{ project.projectCode }}
+                  -
+                  {{ project.projectName }}
+                </option>
+              }
+            </select>
+
+            @if (isInvalid('projectId')) {
+              <small class="validation-error">
+                Project is required.
+              </small>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="assignedEmployeeId">
+              Assigned Employee
+            </label>
+
+            <select
+              id="assignedEmployeeId"
+              formControlName="assignedEmployeeId">
+
+              <option [ngValue]="0">
+                Not assigned
+              </option>
+
+              @for (
+                employee of employees();
+                track employee.id
+              ) {
+                <option [ngValue]="employee.id">
+                  {{ employee.employeeCode }}
+                  -
+                  {{ employee.fullName }}
+                </option>
+              }
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label for="startDate">
+              Start Date
+            </label>
+
+            <input
+              id="startDate"
+              type="date"
+              formControlName="startDate">
+
+            @if (isInvalid('startDate')) {
+              <small class="validation-error">
+                Start date is required.
+              </small>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="dueDate">
+              Due Date
+            </label>
+
+            <input
+              id="dueDate"
+              type="date"
+              formControlName="dueDate">
+          </div>
+
+          <div class="form-field">
+            <label for="priority">
+              Priority
+            </label>
+
+            <select
+              id="priority"
+              formControlName="priority">
+
+              @for (
+                priority of priorities;
+                track priority
+              ) {
+                <option [value]="priority">
+                  {{ priority }}
+                </option>
+              }
+            </select>
+
+            @if (isInvalid('priority')) {
+              <small class="validation-error">
+                Priority is required.
+              </small>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="status">
+              Status
+            </label>
+
+            <select
+              id="status"
+              formControlName="status">
+
+              @for (
+                status of statuses;
+                track status
+              ) {
+                <option [value]="status">
+                  {{ status }}
+                </option>
+              }
+            </select>
+
+            @if (isInvalid('status')) {
+              <small class="validation-error">
+                Status is required.
+              </small>
+            }
+          </div>
+
+          <div class="form-field">
+            <label for="estimatedHours">
+              Estimated Hours
+            </label>
+
+            <input
+              id="estimatedHours"
+              type="number"
+              min="0"
+              step="0.5"
+              formControlName="estimatedHours">
+
+            @if (isInvalid('estimatedHours')) {
+              <small class="validation-error">
+                Enter valid estimated hours.
+              </small>
+            }
+          </div>
+
+          <div class="checkbox-field">
+            <input
+              id="isActive"
+              type="checkbox"
+              formControlName="isActive">
+
+            <label for="isActive">
+              Active Task
+            </label>
+          </div>
+
+          <div class="form-field full-width">
+            <label for="description">
+              Description
+            </label>
+
+            <textarea
+              id="description"
+              rows="4"
+              maxlength="1000"
+              formControlName="description"
+              placeholder="Enter task description">
+            </textarea>
+
+            @if (isInvalid('description')) {
+              <small class="validation-error">
+                Description cannot exceed
+                1000 characters.
+              </small>
+            }
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button
+            class="primary-button"
+            type="submit"
+            [disabled]="saving()">
+
+            {{
+              saving()
+                ? 'Saving...'
+                : editingId() === null
+                  ? 'Add Task'
+                  : 'Update Task'
+            }}
+          </button>
+
+          <button
+            class="secondary-button"
+            type="button"
+            [disabled]="saving()"
+            (click)="resetForm()">
+
+            {{
+              editingId() === null
+                ? 'Clear'
+                : 'Cancel'
+            }}
+          </button>
+        </div>
+      </form>
+    </section>
+  }
+
+  <section class="list-card">
+    <div class="section-heading">
+      <h2>
+        {{
+          isEmployee()
+            ? 'My Assigned Tasks'
+            : 'Task List'
+        }}
+      </h2>
+
+      <p>
+        Total tasks: {{ workTasks().length }}
+      </p>
+    </div>
+
+    @if (loading()) {
+      <div class="empty-message">
+        Loading tasks...
+      </div>
+    } @else if (workTasks().length === 0) {
+      <div class="empty-message">
+        @if (isEmployee()) {
+          No tasks are assigned to you.
+        } @else {
+          No task records found.
+        }
+      </div>
+    } @else {
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Task</th>
+              <th>Project</th>
+              <th>Employee</th>
+              <th>Priority</th>
+              <th>Status</th>
+              <th>Due Date</th>
+              <th>Hours</th>
+
+              @if (canManageTasks()) {
+                <th class="actions-column">
+                  Actions
+                </th>
+              }
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (
+              task of workTasks();
+              track task.id
+            ) {
+              <tr>
+                <td>
+                  {{ task.taskCode }}
+                </td>
+
+                <td>
+                  {{ task.taskTitle }}
+                </td>
+
+                <td>
+                  {{ task.projectName }}
+                </td>
+
+                <td>
+                  {{
+                    task.employeeName ||
+                    'Not assigned'
+                  }}
+                </td>
+
+                <td>
+                  <span
+                    class="badge"
+                    [class.high]="
+                      task.priority === 'High' ||
+                      task.priority === 'Critical'
+                    ">
+
+                    {{ task.priority }}
+                  </span>
+                </td>
+
+                <td>
+                  @if (isEmployee()) {
+                    <select
+                      class="task-status-select"
+                      [value]="task.status"
+                      [disabled]="
+                        updatingStatusId() === task.id
+                      "
+                      (change)="
+                        updateTaskStatus(
+                          task,
+                          $any($event.target).value
+                        )
+                      ">
+
+                      <option value="Not Started">
+                        Not Started
+                      </option>
+
+                      <option value="In Progress">
+                        In Progress
+                      </option>
+
+                      <option value="On Hold">
+                        On Hold
+                      </option>
+
+                      <option value="Completed">
+                        Completed
+                      </option>
+                    </select>
+                  } @else {
+                    <span class="task-status">
+                      {{ task.status }}
+                    </span>
+                  }
+                </td>
+
+                <td>
+                  {{
+                    task.dueDate
+                      ? task.dueDate.substring(0, 10)
+                      : '-'
+                  }}
+                </td>
+
+                <td>
+                  {{ task.estimatedHours }}
+                </td>
+
+                @if (canManageTasks()) {
+                  <td class="actions">
+                    <button
+                      class="edit-button"
+                      type="button"
+                      [disabled]="saving()"
+                      (click)="editWorkTask(task)">
+
+                      Edit
+                    </button>
+
+                    <button
+                      class="delete-button"
+                      type="button"
+                      [disabled]="saving()"
+                      (click)="deleteWorkTask(task)">
+
+                      Delete
+                    </button>
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+</main>

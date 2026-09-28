@@ -1,0 +1,334 @@
+<main class="page-container">
+  <header class="page-header">
+    <div>
+      <h1>Project Management</h1>
+      <p>Manage projects and client information</p>
+    </div>
+
+    <button
+      class="refresh-button"
+      type="button"
+      (click)="loadProjects()"
+      [disabled]="loading()">
+      Refresh
+    </button>
+  </header>
+
+  <section class="form-card">
+    <div class="section-heading">
+      <h2>
+        {{ editingId() === null
+          ? 'Add Project'
+          : 'Edit Project' }}
+      </h2>
+
+      <p>Enter the project information below.</p>
+    </div>
+
+    @if (successMessage()) {
+      <div class="message success">
+        {{ successMessage() }}
+      </div>
+    }
+
+    @if (errorMessage()) {
+      <div class="message error">
+        {{ errorMessage() }}
+      </div>
+    }
+
+    <form
+      [formGroup]="projectForm"
+      (ngSubmit)="saveProject()">
+
+      <div class="form-grid">
+        <div class="form-field">
+          <label for="projectCode">
+            Project Code
+          </label>
+
+          <input
+            id="projectCode"
+            type="text"
+            formControlName="projectCode"
+            placeholder="Example: PRJ001"
+            maxlength="20">
+
+          @if (isInvalid('projectCode')) {
+            <small class="validation-error">
+              Project code is required.
+            </small>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="projectName">
+            Project Name
+          </label>
+
+          <input
+            id="projectName"
+            type="text"
+            formControlName="projectName"
+            placeholder="Enter project name"
+            maxlength="150">
+
+          @if (isInvalid('projectName')) {
+            <small class="validation-error">
+              Project name is required.
+            </small>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="clientName">
+            Client Name
+          </label>
+
+          <input
+            id="clientName"
+            type="text"
+            formControlName="clientName"
+            placeholder="Enter client name"
+            maxlength="150">
+
+          @if (isInvalid('clientName')) {
+            <small class="validation-error">
+              Client name is required.
+            </small>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="status">
+            Project Status
+          </label>
+
+          <select
+            id="status"
+            formControlName="status">
+
+            @for (
+              status of projectStatuses;
+              track status
+            ) {
+              <option [value]="status">
+                {{ status }}
+              </option>
+            }
+          </select>
+
+          @if (isInvalid('status')) {
+            <small class="validation-error">
+              Project status is required.
+            </small>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="startDate">
+            Start Date
+          </label>
+
+          <input
+            id="startDate"
+            type="date"
+            formControlName="startDate">
+
+          @if (isInvalid('startDate')) {
+            <small class="validation-error">
+              Start date is required.
+            </small>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="deadline">
+            Deadline
+          </label>
+
+          <input
+            id="deadline"
+            type="date"
+            formControlName="deadline">
+        </div>
+
+        <div class="form-field full-width">
+          <label for="description">
+            Description
+          </label>
+
+          <textarea
+            id="description"
+            formControlName="description"
+            placeholder="Enter project description"
+            maxlength="500"
+            rows="4">
+          </textarea>
+
+          @if (isInvalid('description')) {
+            <small class="validation-error">
+              Description cannot exceed 500 characters.
+            </small>
+          }
+        </div>
+
+        <div class="checkbox-field full-width">
+          <input
+            id="isActive"
+            type="checkbox"
+            formControlName="isActive">
+
+          <label for="isActive">
+            Active Project
+          </label>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button
+          class="primary-button"
+          type="submit"
+          [disabled]="saving()">
+
+          @if (saving()) {
+            Saving...
+          } @else if (editingId() === null) {
+            Add Project
+          } @else {
+            Update Project
+          }
+        </button>
+
+        <button
+          class="secondary-button"
+          type="button"
+          (click)="resetForm()"
+          [disabled]="saving()">
+          {{ editingId() === null ? 'Clear' : 'Cancel' }}
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <section class="list-card">
+    <div class="section-heading">
+      <h2>Project List</h2>
+
+      <p>
+        Total projects:
+        {{ projects().length }}
+      </p>
+    </div>
+
+    @if (loading()) {
+      <div class="empty-message">
+        Loading projects...
+      </div>
+    } @else if (projects().length === 0) {
+      <div class="empty-message">
+        No project records found.
+      </div>
+    } @else {
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Project Name</th>
+              <th>Client</th>
+              <th>Start Date</th>
+              <th>Deadline</th>
+              <th>Project Status</th>
+              <th>Active Status</th>
+              <th class="actions-column">Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (
+              project of projects();
+              track project.id
+            ) {
+              <tr>
+                <td>
+                  {{ project.projectCode }}
+                </td>
+
+                <td>
+                  {{ project.projectName }}
+                </td>
+
+                <td>
+                  {{ project.clientName }}
+                </td>
+
+                <td>
+                  {{ project.startDate.substring(0, 10) }}
+                </td>
+
+                <td>
+                  {{
+                    project.deadline
+                      ? project.deadline.substring(0, 10)
+                      : '-'
+                  }}
+                </td>
+
+                <td>
+                  <span
+                    class="project-status"
+                    [class.not-started]="
+                      project.status === 'Not Started'
+                    "
+                    [class.in-progress]="
+                      project.status === 'In Progress'
+                    "
+                    [class.on-hold]="
+                      project.status === 'On Hold'
+                    "
+                    [class.completed]="
+                      project.status === 'Completed'
+                    "
+                    [class.cancelled]="
+                      project.status === 'Cancelled'
+                    ">
+                    {{ project.status }}
+                  </span>
+                </td>
+
+                <td>
+                  <span
+                    class="active-status"
+                    [class.active]="project.isActive"
+                    [class.inactive]="!project.isActive">
+
+                    {{ project.isActive
+                      ? 'Active'
+                      : 'Inactive' }}
+                  </span>
+                </td>
+
+                <td class="actions">
+                  <button
+                    class="edit-button"
+                    type="button"
+                    (click)="editProject(project)">
+                    Edit
+                  </button>
+
+                  <button
+                    class="delete-button"
+                    type="button"
+                    (click)="deleteProject(project)">
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+</main>

@@ -1,0 +1,321 @@
+:host {
+  display: block;
+}
+
+.page-container {
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 40px;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 28px;
+
+  h1 {
+    margin: 0;
+    color: #292929;
+    font-size: 38px;
+  }
+
+  p {
+    margin: 7px 0 0;
+    color: #858585;
+    font-size: 19px;
+  }
+}
+
+.primary-button {
+  padding: 13px 25px;
+  border: 0;
+  border-radius: 8px;
+  color: #ffffff;
+  background: #6e3ab6;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.primary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+  gap: 22px;
+  margin-bottom: 25px;
+}
+
+.summary-card {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-height: 135px;
+  padding: 25px;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow:
+    0 8px 25px rgba(30, 30, 30, 0.07);
+
+  .card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 58px;
+    height: 58px;
+    flex: 0 0 58px;
+    border-radius: 14px;
+    color: #ffffff;
+    font-size: 24px;
+    font-weight: 700;
+  }
+
+  p {
+    margin: 0 0 5px;
+    color: #777777;
+    font-size: 15px;
+  }
+
+  h2 {
+    margin: 0;
+    color: #292929;
+    font-size: 31px;
+  }
+
+  span {
+    display: block;
+    margin-top: 4px;
+    color: #8a8a8a;
+    font-size: 13px;
+  }
+}
+
+.summary-card.employees .card-icon {
+  background: #6e3ab6;
+}
+
+.summary-card.projects .card-icon {
+  background: #246ad3;
+}
+
+.summary-card.tasks .card-icon {
+  background: #e59a17;
+}
+
+.summary-card.hours .card-icon {
+  background: #13875a;
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 25px;
+  margin-bottom: 25px;
+}
+
+.details-card,
+.list-card {
+  padding: 30px;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow:
+    0 8px 25px rgba(30, 30, 30, 0.07);
+}
+
+.card-heading,
+.section-header {
+  margin-bottom: 23px;
+
+  h2 {
+    margin: 0;
+    color: #292929;
+    font-size: 26px;
+  }
+
+  p {
+    margin: 6px 0 0;
+    color: #858585;
+    font-size: 16px;
+  }
+}
+
+.status-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 15px;
+  border-radius: 9px;
+  background: #f7f7f9;
+
+  div {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #444444;
+  }
+
+  strong {
+    color: #292929;
+    font-size: 17px;
+  }
+}
+
+.status-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+}
+
+.status-dot.pending {
+  background: #e59a17;
+}
+
+.status-dot.completed,
+.status-dot.approved {
+  background: #13875a;
+}
+
+.status-dot.draft {
+  background: #858585;
+}
+
+.status-dot.submitted {
+  background: #246ad3;
+}
+
+.status-dot.rejected {
+  background: #d33b3b;
+}
+
+.status-dot.total {
+  background: #6e3ab6;
+}
+
+.table-container {
+  overflow-x: auto;
+  border: 1px solid #dedfe4;
+  border-radius: 12px;
+}
+
+table {
+  width: 100%;
+  min-width: 1100px;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 17px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid #dedfe4;
+}
+
+th {
+  color: #292929;
+  background: #f6f7f9;
+  font-size: 14px;
+}
+
+td {
+  color: #333333;
+  font-size: 15px;
+}
+
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.description-cell {
+  min-width: 200px;
+  max-width: 300px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 20px;
+  color: #555555;
+  background: #eeeeee;
+  font-size: 13px;
+}
+
+.status-badge.draft {
+  color: #555555;
+  background: #eeeeee;
+}
+
+.status-badge.submitted {
+  color: #1453a1;
+  background: #dcecff;
+}
+
+.status-badge.approved {
+  color: #08783e;
+  background: #d8f7e6;
+}
+
+.status-badge.rejected {
+  color: #c91c1c;
+  background: #ffe0e0;
+}
+
+.message {
+  margin-bottom: 24px;
+  padding: 18px;
+  border-radius: 10px;
+  color: #555555;
+  background: #f1f2f5;
+}
+
+.message.error {
+  color: #c71919;
+  border: 1px solid #ff9d9d;
+  background: #ffe1e1;
+}
+
+@media (max-width: 1100px) {
+  .summary-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .page-container {
+    padding: 20px;
+  }
+
+  .page-header {
+    align-items: flex-start;
+    flex-direction: column;
+
+    h1 {
+      font-size: 31px;
+    }
+  }
+
+  .summary-grid,
+  .details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .details-card,
+  .list-card {
+    padding: 20px;
+  }
+}

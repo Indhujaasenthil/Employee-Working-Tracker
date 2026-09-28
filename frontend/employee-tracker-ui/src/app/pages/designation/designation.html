@@ -1,0 +1,224 @@
+<main class="page-container">
+  <header class="page-header">
+    <div>
+      <h1>Designation Master</h1>
+      <p>Manage employee designations</p>
+    </div>
+
+    <button
+      class="refresh-button"
+      type="button"
+      (click)="loadDesignations()"
+      [disabled]="loading()">
+      Refresh
+    </button>
+  </header>
+
+  <section class="form-card">
+    <div class="section-heading">
+      <h2>
+        {{ editingId() === null
+          ? 'Add Designation'
+          : 'Edit Designation' }}
+      </h2>
+
+      <p>Enter the designation information below.</p>
+    </div>
+
+    @if (successMessage()) {
+      <div class="message success">
+        {{ successMessage() }}
+      </div>
+    }
+
+    @if (errorMessage()) {
+      <div class="message error">
+        {{ errorMessage() }}
+      </div>
+    }
+
+    <form
+      [formGroup]="designationForm"
+      (ngSubmit)="saveDesignation()">
+
+      <div class="form-grid">
+        <div class="form-field">
+          <label for="designationCode">
+            Designation Code
+          </label>
+
+          <input
+            id="designationCode"
+            type="text"
+            formControlName="designationCode"
+            placeholder="Example: DES001"
+            maxlength="20">
+
+          @if (isInvalid('designationCode')) {
+            <small class="validation-error">
+              Designation code is required.
+            </small>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="designationName">
+            Designation Name
+          </label>
+
+          <input
+            id="designationName"
+            type="text"
+            formControlName="designationName"
+            placeholder="Example: Angular Developer"
+            maxlength="100">
+
+          @if (isInvalid('designationName')) {
+            <small class="validation-error">
+              Designation name is required.
+            </small>
+          }
+        </div>
+
+        <div class="form-field full-width">
+          <label for="description">
+            Description
+          </label>
+
+          <textarea
+            id="description"
+            formControlName="description"
+            placeholder="Enter designation description"
+            maxlength="250"
+            rows="4">
+          </textarea>
+
+          @if (isInvalid('description')) {
+            <small class="validation-error">
+              Description cannot exceed 250 characters.
+            </small>
+          }
+        </div>
+
+        <div class="checkbox-field full-width">
+          <input
+            id="isActive"
+            type="checkbox"
+            formControlName="isActive">
+
+          <label for="isActive">
+            Active Designation
+          </label>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button
+          class="primary-button"
+          type="submit"
+          [disabled]="saving()">
+
+          @if (saving()) {
+            Saving...
+          } @else if (editingId() === null) {
+            Add Designation
+          } @else {
+            Update Designation
+          }
+        </button>
+
+        <button
+          class="secondary-button"
+          type="button"
+          (click)="resetForm()"
+          [disabled]="saving()">
+          {{ editingId() === null ? 'Clear' : 'Cancel' }}
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <section class="list-card">
+    <div class="section-heading">
+      <h2>Designation List</h2>
+
+      <p>
+        Total designations:
+        {{ designations().length }}
+      </p>
+    </div>
+
+    @if (loading()) {
+      <div class="empty-message">
+        Loading designations...
+      </div>
+    } @else if (designations().length === 0) {
+      <div class="empty-message">
+        No designation records found.
+      </div>
+    } @else {
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Designation Name</th>
+              <th>Description</th>
+              <th>Status</th>
+              <th class="actions-column">Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (
+              designation of designations();
+              track designation.id
+            ) {
+              <tr>
+                <td>
+                  {{ designation.designationCode }}
+                </td>
+
+                <td>
+                  {{ designation.designationName }}
+                </td>
+
+                <td>
+                  {{ designation.description || '-' }}
+                </td>
+
+                <td>
+                  <span
+                    class="status"
+                    [class.active]="designation.isActive"
+                    [class.inactive]="!designation.isActive">
+
+                    {{ designation.isActive
+                      ? 'Active'
+                      : 'Inactive' }}
+                  </span>
+                </td>
+
+                <td class="actions">
+                  <button
+                    class="edit-button"
+                    type="button"
+                    (click)="editDesignation(designation)">
+                    Edit
+                  </button>
+
+                  <button
+                    class="delete-button"
+                    type="button"
+                    (click)="deleteDesignation(designation)">
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+</main>

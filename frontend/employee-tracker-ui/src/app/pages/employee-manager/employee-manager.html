@@ -1,0 +1,174 @@
+<main class="page-container">
+  <header class="page-header">
+    <div>
+      <h1>Manager Assignment</h1>
+
+      <p>
+        Assign reporting managers to employees
+      </p>
+    </div>
+
+    <button
+      class="refresh-button"
+      type="button"
+      [disabled]="loading()"
+      (click)="loadPageData()">
+
+      {{ loading() ? 'Loading...' : 'Refresh' }}
+    </button>
+  </header>
+
+  @if (successMessage()) {
+    <div class="message success">
+      {{ successMessage() }}
+    </div>
+  }
+
+  @if (errorMessage()) {
+    <div class="message error">
+      {{ errorMessage() }}
+    </div>
+  }
+
+  <section class="list-card">
+    <div class="section-heading">
+      <h2>Employee Reporting Structure</h2>
+
+      <p>
+        Total employees:
+        {{ employees().length }}
+      </p>
+    </div>
+
+    @if (loading()) {
+      <div class="empty-message">
+        Loading manager assignments...
+      </div>
+    } @else if (employees().length === 0) {
+      <div class="empty-message">
+        No employee records found.
+      </div>
+    } @else {
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Employee Code</th>
+              <th>Employee</th>
+              <th>Department</th>
+              <th>Designation</th>
+              <th>Current Manager</th>
+              <th>Assign Manager</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (
+              employee of employees();
+              track employee.id
+            ) {
+              <tr>
+                <td>
+                  {{ employee.employeeCode }}
+                </td>
+
+                <td>
+                  <div class="employee-details">
+                    <strong>
+                      {{ employee.fullName }}
+                    </strong>
+
+                    <small>
+                      {{ employee.email }}
+                    </small>
+                  </div>
+                </td>
+
+                <td>
+                  {{ employee.department }}
+                </td>
+
+                <td>
+                  {{ employee.designation }}
+                </td>
+
+                <td>
+                  @if (employee.managerName) {
+                    <span class="manager-badge">
+                      {{ employee.managerName }}
+                    </span>
+                  } @else {
+                    <span class="not-assigned">
+                      Not assigned
+                    </span>
+                  }
+                </td>
+
+                <td>
+                  <select
+                    class="manager-select"
+                    [value]="
+                      getSelectedManagerId(
+                        employee.id
+                      ) ?? ''
+                    "
+                    [disabled]="
+                      processingId() === employee.id ||
+                      !employee.isActive
+                    "
+                    (change)="
+                      managerChanged(
+                        employee.id,
+                        $any($event.target).value
+                      )
+                    ">
+
+                    <option value="">
+                      No manager
+                    </option>
+
+                    @for (
+                      manager of
+                        getManagersForEmployee(
+                          employee.id
+                        );
+                      track manager.id
+                    ) {
+                      <option
+                        [value]="manager.id">
+
+                        {{ manager.employeeCode }}
+                        -
+                        {{ manager.fullName }}
+                      </option>
+                    }
+                  </select>
+                </td>
+
+                <td>
+                  <button
+                    class="save-button"
+                    type="button"
+                    [disabled]="
+                      !hasManagerChanged(employee) ||
+                      processingId() === employee.id ||
+                      !employee.isActive
+                    "
+                    (click)="saveManager(employee)">
+
+                    {{
+                      processingId() === employee.id
+                        ? 'Saving...'
+                        : 'Save'
+                    }}
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+</main>

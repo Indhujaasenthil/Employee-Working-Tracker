@@ -1,0 +1,232 @@
+<main class="page-container">
+  <header class="page-header">
+    <div>
+      <h1>Department Master</h1>
+      <p>Manage organization departments</p>
+    </div>
+
+    <button
+      type="button"
+      class="refresh-button"
+      [disabled]="loading()"
+      (click)="loadDepartments()">
+      {{ loading() ? 'Loading...' : 'Refresh' }}
+    </button>
+  </header>
+
+  <!-- Add/Edit Department Form -->
+  <section class="form-card">
+    <div class="section-heading">
+      <div>
+        <h2>
+          {{ editingId() === null
+            ? 'Add Department'
+            : 'Edit Department' }}
+        </h2>
+
+        <p>Enter the department information below.</p>
+      </div>
+    </div>
+
+    <form
+      [formGroup]="departmentForm"
+      (ngSubmit)="saveDepartment()">
+
+      <div class="form-grid">
+        <div class="form-field">
+          <label for="departmentCode">
+            Department Code
+          </label>
+
+          <input
+            id="departmentCode"
+            type="text"
+            formControlName="departmentCode"
+            placeholder="Example: DEP001"
+          />
+
+          @if (isInvalid('departmentCode')) {
+            <small class="validation-message">
+              Department code is required.
+            </small>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="departmentName">
+            Department Name
+          </label>
+
+          <input
+            id="departmentName"
+            type="text"
+            formControlName="departmentName"
+            placeholder="Example: Software Development"
+          />
+
+          @if (isInvalid('departmentName')) {
+            <small class="validation-message">
+              Department name is required.
+            </small>
+          }
+        </div>
+
+        <div class="form-field full-width">
+          <label for="description">
+            Description
+          </label>
+
+          <textarea
+            id="description"
+            formControlName="description"
+            placeholder="Enter department description"
+            rows="3">
+          </textarea>
+
+          @if (isInvalid('description')) {
+            <small class="validation-message">
+              Description cannot exceed 250 characters.
+            </small>
+          }
+        </div>
+
+        <div class="form-field checkbox-field">
+          <label class="checkbox-label">
+            <input
+              type="checkbox"
+              formControlName="isActive"
+            />
+
+            <span>Active Department</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button
+          type="submit"
+          class="save-button"
+          [disabled]="saving()">
+
+          @if (saving()) {
+            Saving...
+          } @else if (editingId() === null) {
+            Add Department
+          } @else {
+            Update Department
+          }
+        </button>
+
+        <button
+          type="button"
+          class="clear-button"
+          (click)="resetForm()">
+          Clear
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <!-- Success message -->
+  @if (successMessage()) {
+    <div class="message success-message">
+      {{ successMessage() }}
+    </div>
+  }
+
+  <!-- Error message -->
+  @if (errorMessage()) {
+    <div class="message error-message">
+      {{ errorMessage() }}
+    </div>
+  }
+
+  <!-- Department List -->
+  <section class="list-card">
+    <div class="section-heading">
+      <div>
+        <h2>Department List</h2>
+
+        <p>
+          Total departments:
+          {{ departments().length }}
+        </p>
+      </div>
+    </div>
+
+    @if (loading()) {
+      <div class="message">
+        Loading departments...
+      </div>
+    } @else if (departments().length === 0) {
+      <div class="message empty-message">
+        No department records found.
+      </div>
+    } @else {
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Department Name</th>
+              <th>Description</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (
+              department of departments();
+              track department.id
+            ) {
+              <tr>
+                <td>
+                  {{ department.departmentCode }}
+                </td>
+
+                <td>
+                  {{ department.departmentName }}
+                </td>
+
+                <td>
+                  {{ department.description || '-' }}
+                </td>
+
+                <td>
+                  <span
+                    class="status"
+                    [class.active]="department.isActive"
+                    [class.inactive]="!department.isActive">
+
+                    {{ department.isActive
+                      ? 'Active'
+                      : 'Inactive' }}
+                  </span>
+                </td>
+
+                <td>
+                  <div class="action-buttons">
+                    <button
+                      type="button"
+                      class="edit-button"
+                      (click)="editDepartment(department)">
+                      Edit
+                    </button>
+
+                    <button
+                      type="button"
+                      class="delete-button"
+                      (click)="deleteDepartment(department)">
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+</main>

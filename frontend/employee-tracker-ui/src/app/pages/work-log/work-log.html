@@ -1,0 +1,423 @@
+<main class="page-container">
+  <header class="page-header">
+    <div>
+      <h1>Daily Work Log</h1>
+      <p>Record employee daily activities</p>
+    </div>
+
+    <button
+      type="button"
+      class="primary-button"
+      [disabled]="loading()"
+      (click)="loadPageData()">
+      Refresh
+    </button>
+  </header>
+
+  @if (errorMessage()) {
+    <div class="message error">
+      {{ errorMessage() }}
+    </div>
+  }
+
+  @if (successMessage()) {
+    <div class="message success">
+      {{ successMessage() }}
+    </div>
+  }
+
+  <section class="form-card">
+    <div class="section-header">
+      <h2>
+        @if (editingId() === null) {
+          Add Work Log
+        } @else {
+          Edit Work Log
+        }
+      </h2>
+
+      <p>
+        Enter the employee work information below.
+      </p>
+    </div>
+
+    <form
+      [formGroup]="workLogForm"
+      (ngSubmit)="saveWorkLog()">
+
+      <div class="form-grid">
+        <!-- Employee -->
+        <div class="form-field">
+          <label for="employeeId">
+            Employee
+          </label>
+
+          <select
+            id="employeeId"
+            formControlName="employeeId">
+            <option [ngValue]="0">
+              Select employee
+            </option>
+
+            @for (
+              employee of employees();
+              track employee.id
+            ) {
+              <option [ngValue]="employee.id">
+                {{ employee.employeeCode }} -
+                {{ employee.fullName }}
+              </option>
+            }
+          </select>
+
+          @if (isInvalid('employeeId')) {
+            <small class="validation-error">
+              Please select an employee.
+            </small>
+          }
+        </div>
+
+        <!-- Project -->
+        <div class="form-field">
+          <label for="projectId">
+            Project
+          </label>
+
+          <select
+            id="projectId"
+            formControlName="projectId">
+            <option [ngValue]="0">
+              Select project
+            </option>
+
+            @for (
+              project of projects();
+              track project.id
+            ) {
+              <option [ngValue]="project.id">
+                {{ project.projectCode }} -
+                {{ project.projectName }}
+              </option>
+            }
+          </select>
+
+          @if (isInvalid('projectId')) {
+            <small class="validation-error">
+              Please select a project.
+            </small>
+          }
+        </div>
+
+        <!-- Task -->
+        <div class="form-field">
+          <label for="taskId">
+            Task
+          </label>
+
+          <select
+            id="taskId"
+            formControlName="taskId">
+            <option [ngValue]="0">
+              Select task
+            </option>
+
+            @for (
+              task of filteredTasks();
+              track task.id
+            ) {
+              <option [ngValue]="task.id">
+                {{ task.taskCode }} -
+                {{ task.taskTitle }}
+              </option>
+            }
+          </select>
+
+          @if (isInvalid('taskId')) {
+            <small class="validation-error">
+              Please select a task.
+            </small>
+          }
+
+          @if (
+            workLogForm.controls.projectId.value > 0 &&
+            filteredTasks().length === 0
+          ) {
+            <small class="warning-text">
+              No active tasks are available for the
+              selected employee and project.
+            </small>
+          }
+        </div>
+
+        <!-- Work Date -->
+        <div class="form-field">
+          <label for="workDate">
+            Work Date
+          </label>
+
+          <input
+            id="workDate"
+            type="date"
+            formControlName="workDate">
+
+          @if (isInvalid('workDate')) {
+            <small class="validation-error">
+              Work date is required.
+            </small>
+          }
+        </div>
+
+        <!-- Hours Worked -->
+        <div class="form-field">
+          <label for="hoursWorked">
+            Hours Worked
+          </label>
+
+          <input
+            id="hoursWorked"
+            type="number"
+            min="0.25"
+            max="24"
+            step="0.25"
+            formControlName="hoursWorked">
+
+          @if (isInvalid('hoursWorked')) {
+            <small class="validation-error">
+              Enter hours between 0.25 and 24.
+            </small>
+          }
+        </div>
+
+        <!-- Progress -->
+        <div class="form-field">
+          <label for="progressPercentage">
+            Progress Percentage
+          </label>
+
+          <input
+            id="progressPercentage"
+            type="number"
+            min="0"
+            max="100"
+            formControlName="progressPercentage">
+
+          @if (isInvalid('progressPercentage')) {
+            <small class="validation-error">
+              Progress must be between 0 and 100.
+            </small>
+          }
+        </div>
+
+        <!-- Status -->
+        <div class="form-field">
+          <label for="status">
+            Status
+          </label>
+
+          <select
+            id="status"
+            formControlName="status">
+            <option value="Draft">
+              Draft
+            </option>
+
+            <option value="Submitted">
+              Submitted
+            </option>
+
+            <option value="Approved">
+              Approved
+            </option>
+
+            <option value="Rejected">
+              Rejected
+            </option>
+          </select>
+
+          @if (isInvalid('status')) {
+            <small class="validation-error">
+              Status is required.
+            </small>
+          }
+        </div>
+      </div>
+
+      <!-- Work Description -->
+      <div class="form-field full-width">
+        <label for="workDescription">
+          Work Description
+        </label>
+
+        <textarea
+          id="workDescription"
+          rows="4"
+          maxlength="1000"
+          placeholder="Enter completed work"
+          formControlName="workDescription">
+        </textarea>
+
+        @if (isInvalid('workDescription')) {
+          <small class="validation-error">
+            Work description is required.
+          </small>
+        }
+      </div>
+
+      <!-- Blockers -->
+      <div class="form-field full-width">
+        <label for="blockers">
+          Blockers
+        </label>
+
+        <textarea
+          id="blockers"
+          rows="3"
+          maxlength="500"
+          placeholder="Enter blockers, if any"
+          formControlName="blockers">
+        </textarea>
+      </div>
+
+      <div class="form-actions">
+        <button
+          type="submit"
+          class="primary-button"
+          [disabled]="saving()">
+          @if (saving()) {
+            Saving...
+          } @else if (editingId() === null) {
+            Add Work Log
+          } @else {
+            Update Work Log
+          }
+        </button>
+
+        <button
+          type="button"
+          class="secondary-button"
+          [disabled]="saving()"
+          (click)="resetForm()">
+          Clear
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <section class="list-card">
+    <div class="section-header">
+      <h2>Daily Work Log List</h2>
+
+      <p>
+        Total work logs:
+        {{ workLogs().length }}
+      </p>
+    </div>
+
+    @if (loading()) {
+      <div class="message">
+        Loading daily work logs...
+      </div>
+    } @else if (workLogs().length === 0) {
+      <div class="message">
+        No daily work-log records found.
+      </div>
+    } @else {
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Employee</th>
+              <th>Project</th>
+              <th>Task</th>
+              <th>Hours</th>
+              <th>Progress</th>
+              <th>Status</th>
+              <th>Description</th>
+              <th>Blockers</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (
+              workLog of workLogs();
+              track workLog.id
+            ) {
+              <tr>
+                <td>
+                  {{ workLog.workDate }}
+                </td>
+
+                <td>
+                  {{ workLog.employeeName }}
+                </td>
+
+                <td>
+                  {{ workLog.projectName }}
+                </td>
+
+                <td>
+                  {{ workLog.taskTitle || '-' }}
+                </td>
+
+                <td>
+                  {{ workLog.hoursWorked }}
+                </td>
+
+                <td>
+                  {{ workLog.progressPercentage }}%
+                </td>
+
+                <td>
+                  <span
+                    class="status"
+                    [class.draft]="
+                      workLog.status === 'Draft'
+                    "
+                    [class.submitted]="
+                      workLog.status === 'Submitted'
+                    "
+                    [class.approved]="
+                      workLog.status === 'Approved'
+                    "
+                    [class.rejected]="
+                      workLog.status === 'Rejected'
+                    ">
+                    {{ workLog.status }}
+                  </span>
+                </td>
+
+                <td class="description-cell">
+                  {{ workLog.workDescription }}
+                </td>
+
+                <td class="description-cell">
+                  {{ workLog.blockers || '-' }}
+                </td>
+
+                <td>
+                  <div class="action-buttons">
+                    <button
+                      type="button"
+                      class="edit-button"
+                      (click)="editWorkLog(workLog)">
+                      Edit
+                    </button>
+
+                    <button
+                      type="button"
+                      class="delete-button"
+                      (click)="deleteWorkLog(workLog)">
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+</main>

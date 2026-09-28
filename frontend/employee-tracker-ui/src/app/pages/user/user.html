@@ -1,0 +1,284 @@
+<main class="page-container">
+  <section class="page-heading">
+    <div>
+      <h1>User Management</h1>
+      <p>Create login accounts and assign roles.</p>
+    </div>
+
+    <button
+      type="button"
+      class="primary-button"
+      (click)="loadUsers()"
+      [disabled]="loading()"
+    >
+      {{ loading() ? 'Loading...' : 'Refresh' }}
+    </button>
+  </section>
+
+  @if (errorMessage()) {
+    <div class="message error-message">
+      {{ errorMessage() }}
+    </div>
+  }
+
+  @if (successMessage()) {
+    <div class="message success-message">
+      {{ successMessage() }}
+    </div>
+  }
+
+  <section class="card form-card">
+    <div class="card-heading">
+      <h2>
+        {{ editingId() === null
+          ? 'Add User'
+          : 'Edit User' }}
+      </h2>
+
+      <p>
+        Enter the login, role and employee
+        information.
+      </p>
+    </div>
+
+    <form
+      [formGroup]="userForm"
+      (ngSubmit)="saveUser()"
+    >
+      <div class="form-grid">
+        <div class="form-field">
+          <label for="userName">
+            Username
+          </label>
+
+          <input
+            id="userName"
+            type="text"
+            formControlName="userName"
+            placeholder="Enter username"
+            maxlength="100"
+          />
+
+          @if (isInvalid('userName')) {
+            <small class="validation-message">
+              Username is required and must contain
+              at least 3 characters.
+            </small>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="password">
+            Password
+          </label>
+
+          <input
+            id="password"
+            type="password"
+            formControlName="password"
+            [placeholder]="
+              editingId() === null
+                ? 'Enter password'
+                : 'Leave blank to keep current password'
+            "
+            maxlength="100"
+          />
+
+          @if (editingId() !== null) {
+            <small class="field-help">
+              Leave blank if you do not want to
+              change the password.
+            </small>
+          }
+
+          @if (isInvalid('password')) {
+            <small class="validation-message">
+              Password must contain at least
+              6 characters.
+            </small>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="role">
+            Role
+          </label>
+
+          <select
+            id="role"
+            formControlName="role"
+          >
+            @for (role of roles; track role) {
+              <option [value]="role">
+                {{ role }}
+              </option>
+            }
+          </select>
+
+          @if (isInvalid('role')) {
+            <small class="validation-message">
+              Please select a role.
+            </small>
+          }
+        </div>
+
+        @if (
+          userForm.controls.role.value ===
+          'Employee'
+        ) {
+          <div class="form-field">
+            <label for="employeeId">
+              Employee
+            </label>
+
+            <select
+              id="employeeId"
+              formControlName="employeeId"
+            >
+              <option [ngValue]="null">
+                Select employee
+              </option>
+
+              @for (
+                employee of employees();
+                track employee.id
+              ) {
+                <option [ngValue]="employee.id">
+                  {{ employee.employeeCode }} -
+                  {{ employee.fullName }}
+                </option>
+              }
+            </select>
+
+            @if (employees().length === 0) {
+              <small class="field-help warning">
+                No active employees are available.
+              </small>
+            }
+
+            @if (isInvalid('employeeId')) {
+              <small class="validation-message">
+                Please select an employee for this
+                login account.
+              </small>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="form-actions">
+        <button
+          type="submit"
+          class="primary-button"
+          [disabled]="saving()"
+        >
+          @if (saving()) {
+            Saving...
+          } @else if (editingId() === null) {
+            Add User
+          } @else {
+            Update User
+          }
+        </button>
+
+        <button
+          type="button"
+          class="secondary-button"
+          (click)="resetForm()"
+          [disabled]="saving()"
+        >
+          Clear
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <section class="card list-card">
+    <div class="card-heading">
+      <h2>User List</h2>
+
+      <p>
+        Total users: {{ users().length }}
+      </p>
+    </div>
+
+    @if (loading()) {
+      <div class="empty-state">
+        Loading users...
+      </div>
+    } @else if (users().length === 0) {
+      <div class="empty-state">
+        No user accounts found.
+      </div>
+    } @else {
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Role</th>
+              <th>Employee Code</th>
+              <th>Employee Name</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (user of users(); track user.id) {
+              <tr>
+                <td>
+                  {{ user.userName }}
+                </td>
+
+                <td>
+                  <span
+                    class="role-badge"
+                    [class.administrator]="
+                      user.role === 'Administrator'
+                    "
+                    [class.manager]="
+                      user.role === 'Manager'
+                    "
+                    [class.employee]="
+                      user.role === 'Employee'
+                    "
+                  >
+                    {{ user.role }}
+                  </span>
+                </td>
+
+                <td>
+                  {{ user.employeeCode || '-' }}
+                </td>
+
+                <td>
+                  {{ user.employeeName || '-' }}
+                </td>
+
+                <td>
+                  <div class="action-buttons">
+                    <button
+                      type="button"
+                      class="edit-button"
+                      (click)="editUser(user)"
+                    >
+                      Edit
+                    </button>
+
+                    <button
+                      type="button"
+                      class="delete-button"
+                      (click)="deleteUser(user)"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+</main>

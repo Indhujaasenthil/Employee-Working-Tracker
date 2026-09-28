@@ -1,0 +1,296 @@
+<main class="page-container">
+  <header class="page-header">
+    <div>
+      <h1>Dashboard</h1>
+
+      <p>
+        Employee working tracker overview
+      </p>
+    </div>
+
+    <button
+      type="button"
+      class="primary-button"
+      [disabled]="loading()"
+      (click)="loadDashboard()">
+      Refresh
+    </button>
+  </header>
+
+  @if (errorMessage()) {
+    <div class="message error">
+      {{ errorMessage() }}
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="message">
+      Loading dashboard information...
+    </div>
+  }
+
+  @if (dashboard(); as data) {
+    <!-- Summary cards -->
+    <section class="summary-grid">
+      <article class="summary-card employees">
+        <div class="card-icon">E</div>
+
+        <div>
+          <p>Total Employees</p>
+          <h2>{{ data.totalEmployees }}</h2>
+
+          <span>
+            {{ data.activeEmployees }} active
+          </span>
+        </div>
+      </article>
+
+      <article class="summary-card projects">
+        <div class="card-icon">P</div>
+
+        <div>
+          <p>Total Projects</p>
+          <h2>{{ data.totalProjects }}</h2>
+
+          <span>
+            {{ data.activeProjects }} active
+          </span>
+        </div>
+      </article>
+
+      <article class="summary-card tasks">
+        <div class="card-icon">T</div>
+
+        <div>
+          <p>Total Tasks</p>
+          <h2>{{ data.totalTasks }}</h2>
+
+          <span>
+            {{ data.pendingTasks }} pending
+          </span>
+        </div>
+      </article>
+
+      <article class="summary-card hours">
+        <div class="card-icon">H</div>
+
+        <div>
+          <p>Total Hours</p>
+          <h2>{{ data.totalHoursWorked }}</h2>
+
+          <span>
+            Recorded work hours
+          </span>
+        </div>
+      </article>
+    </section>
+
+    <!-- Task and approval summaries -->
+    <section class="details-grid">
+      <article class="details-card">
+        <div class="card-heading">
+          <div>
+            <h2>Task Summary</h2>
+            <p>Current task status</p>
+          </div>
+        </div>
+
+        <div class="status-list">
+          <div class="status-row">
+            <div>
+              <span class="status-dot pending"></span>
+              Pending Tasks
+            </div>
+
+            <strong>
+              {{ data.pendingTasks }}
+            </strong>
+          </div>
+
+          <div class="status-row">
+            <div>
+              <span class="status-dot completed"></span>
+              Completed Tasks
+            </div>
+
+            <strong>
+              {{ data.completedTasks }}
+            </strong>
+          </div>
+
+          <div class="status-row">
+            <div>
+              <span class="status-dot total"></span>
+              Total Tasks
+            </div>
+
+            <strong>
+              {{ data.totalTasks }}
+            </strong>
+          </div>
+        </div>
+      </article>
+
+      <article class="details-card">
+        <div class="card-heading">
+          <div>
+            <h2>Work Log Summary</h2>
+            <p>Approval status overview</p>
+          </div>
+        </div>
+
+        <div class="status-list">
+          <div class="status-row">
+            <div>
+              <span class="status-dot draft"></span>
+              Draft
+            </div>
+
+            <strong>
+              {{ data.draftWorkLogs }}
+            </strong>
+          </div>
+
+          <div class="status-row">
+            <div>
+              <span class="status-dot submitted"></span>
+              Submitted
+            </div>
+
+            <strong>
+              {{ data.submittedWorkLogs }}
+            </strong>
+          </div>
+
+          <div class="status-row">
+            <div>
+              <span class="status-dot approved"></span>
+              Approved
+            </div>
+
+            <strong>
+              {{ data.approvedWorkLogs }}
+            </strong>
+          </div>
+
+          <div class="status-row">
+            <div>
+              <span class="status-dot rejected"></span>
+              Rejected
+            </div>
+
+            <strong>
+              {{ data.rejectedWorkLogs }}
+            </strong>
+          </div>
+
+          <div class="status-row">
+            <div>
+              <span class="status-dot total"></span>
+              Total Work Logs
+            </div>
+
+            <strong>
+              {{ data.totalWorkLogs }}
+            </strong>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <!-- Recent work logs -->
+    <section class="list-card">
+      <div class="section-header">
+        <div>
+          <h2>Recent Work Logs</h2>
+
+          <p>
+            Latest employee work activities
+          </p>
+        </div>
+      </div>
+
+      @if (data.recentWorkLogs.length === 0) {
+        <div class="message">
+          No work-log records found.
+        </div>
+      } @else {
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Employee</th>
+                <th>Project</th>
+                <th>Task</th>
+                <th>Hours</th>
+                <th>Progress</th>
+                <th>Status</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (
+                workLog of data.recentWorkLogs;
+                track workLog.id
+              ) {
+                <tr>
+                  <td>
+                    {{
+                      workLog.workDate
+                        | date: 'dd/MM/yyyy'
+                    }}
+                  </td>
+
+                  <td>
+                    {{ workLog.employeeName }}
+                  </td>
+
+                  <td>
+                    {{ workLog.projectName }}
+                  </td>
+
+                  <td>
+                    {{ workLog.taskTitle || '-' }}
+                  </td>
+
+                  <td>
+                    {{ workLog.hoursWorked }}
+                  </td>
+
+                  <td>
+                    {{ workLog.progressPercentage }}%
+                  </td>
+
+                  <td>
+                    <span
+                      class="status-badge"
+                      [class.draft]="
+                        workLog.status === 'Draft'
+                      "
+                      [class.submitted]="
+                        workLog.status === 'Submitted'
+                      "
+                      [class.approved]="
+                        workLog.status === 'Approved'
+                      "
+                      [class.rejected]="
+                        workLog.status === 'Rejected'
+                      ">
+                      {{ workLog.status }}
+                    </span>
+                  </td>
+
+                  <td class="description-cell">
+                    {{ workLog.workDescription }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  }
+</main>

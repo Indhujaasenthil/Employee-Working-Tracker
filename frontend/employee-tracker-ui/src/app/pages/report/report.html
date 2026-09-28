@@ -1,0 +1,455 @@
+<section class="report-page">
+  <header class="page-header">
+    <div>
+      <h1>Work Report</h1>
+      <p>
+        Review employee work logs, hours and progress
+      </p>
+    </div>
+
+    <button
+      type="button"
+      class="export-button"
+      [disabled]="
+        loading() ||
+        !report() ||
+        report()!.workLogs.length === 0
+      "
+      (click)="exportCsv()"
+    >
+      Export CSV
+    </button>
+  </header>
+
+  <section class="filter-card">
+    <h2>Report Filters</h2>
+
+    <form
+      [formGroup]="reportForm"
+      (ngSubmit)="loadReport()"
+    >
+      <div class="filter-grid">
+        <div class="form-field">
+          <label for="fromDate">
+            From Date
+          </label>
+
+          <input
+            id="fromDate"
+            type="date"
+            formControlName="fromDate"
+          />
+
+          @if (
+            reportForm.controls.fromDate.touched &&
+            reportForm.controls.fromDate.invalid
+          ) {
+            <span class="validation-message">
+              From date is required.
+            </span>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="toDate">
+            To Date
+          </label>
+
+          <input
+            id="toDate"
+            type="date"
+            formControlName="toDate"
+          />
+
+          @if (
+            reportForm.controls.toDate.touched &&
+            reportForm.controls.toDate.invalid
+          ) {
+            <span class="validation-message">
+              To date is required.
+            </span>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="employeeId">
+            Employee
+          </label>
+
+          <select
+            id="employeeId"
+            formControlName="employeeId"
+          >
+            <option [ngValue]="null">
+              All employees
+            </option>
+
+            @for (
+              employee of employees();
+              track employee.id
+            ) {
+              <option [ngValue]="employee.id">
+                {{ employee.employeeCode }} -
+                {{ employee.fullName }}
+              </option>
+            }
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label for="projectId">
+            Project
+          </label>
+
+          <select
+            id="projectId"
+            formControlName="projectId"
+          >
+            <option [ngValue]="null">
+              All projects
+            </option>
+
+            @for (
+              project of projects();
+              track project.id
+            ) {
+              <option [ngValue]="project.id">
+                {{ project.projectCode }} -
+                {{ project.projectName }}
+              </option>
+            }
+          </select>
+        </div>
+      </div>
+
+      @if (errorMessage()) {
+        <div class="error-message">
+          {{ errorMessage() }}
+        </div>
+      }
+
+      <div class="filter-actions">
+        <button
+          type="submit"
+          class="primary-button"
+          [disabled]="loading()"
+        >
+          @if (loading()) {
+            Loading...
+          } @else {
+            Generate Report
+          }
+        </button>
+
+        <button
+          type="button"
+          class="secondary-button"
+          [disabled]="loading()"
+          (click)="resetFilters()"
+        >
+          Reset
+        </button>
+      </div>
+    </form>
+  </section>
+
+  @if (loading()) {
+    <div class="loading-state">
+      Loading work report...
+    </div>
+  } @else if (report(); as data) {
+    <section class="summary-grid">
+      <article class="summary-card">
+        <span>Total Work Logs</span>
+        <strong>{{ data.totalWorkLogs }}</strong>
+      </article>
+
+      <article class="summary-card">
+        <span>Total Hours</span>
+        <strong>
+          {{ data.totalHours | number: '1.1-2' }}
+        </strong>
+      </article>
+
+      <article class="summary-card">
+        <span>Average Progress</span>
+        <strong>
+          {{
+            data.averageProgress
+              | number: '1.0-2'
+          }}%
+        </strong>
+      </article>
+
+      <article class="summary-card">
+        <span>Approved Logs</span>
+        <strong>{{ data.approvedWorkLogs }}</strong>
+      </article>
+    </section>
+
+    <section class="status-grid">
+      <article class="status-card draft">
+        <span>Draft</span>
+        <strong>{{ data.draftWorkLogs }}</strong>
+      </article>
+
+      <article class="status-card submitted">
+        <span>Submitted</span>
+        <strong>{{ data.submittedWorkLogs }}</strong>
+      </article>
+
+      <article class="status-card approved">
+        <span>Approved</span>
+        <strong>{{ data.approvedWorkLogs }}</strong>
+      </article>
+
+      <article class="status-card rejected">
+        <span>Rejected</span>
+        <strong>{{ data.rejectedWorkLogs }}</strong>
+      </article>
+    </section>
+
+    <section class="report-card">
+      <div class="card-heading">
+        <div>
+          <h2>Employee Summary</h2>
+          <p>
+            Hours and progress grouped by employee
+          </p>
+        </div>
+      </div>
+
+      @if (data.employeeSummaries.length === 0) {
+        <div class="empty-state">
+          No employee summary is available.
+        </div>
+      } @else {
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Employee Code</th>
+                <th>Employee</th>
+                <th>Work Logs</th>
+                <th>Total Hours</th>
+                <th>Average Progress</th>
+                <th>Approved</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (
+                employee of data.employeeSummaries;
+                track employee.employeeId
+              ) {
+                <tr>
+                  <td>{{ employee.employeeCode }}</td>
+
+                  <td>{{ employee.employeeName }}</td>
+
+                  <td>{{ employee.totalWorkLogs }}</td>
+
+                  <td>
+                    {{
+                      employee.totalHours
+                        | number: '1.1-2'
+                    }}
+                  </td>
+
+                  <td>
+                    {{
+                      employee.averageProgress
+                        | number: '1.0-2'
+                    }}%
+                  </td>
+
+                  <td>{{ employee.approvedWorkLogs }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    <section class="report-card">
+      <div class="card-heading">
+        <div>
+          <h2>Project Summary</h2>
+          <p>
+            Hours and progress grouped by project
+          </p>
+        </div>
+      </div>
+
+      @if (data.projectSummaries.length === 0) {
+        <div class="empty-state">
+          No project summary is available.
+        </div>
+      } @else {
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Project Code</th>
+                <th>Project</th>
+                <th>Work Logs</th>
+                <th>Total Hours</th>
+                <th>Average Progress</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (
+                project of data.projectSummaries;
+                track project.projectId
+              ) {
+                <tr>
+                  <td>{{ project.projectCode }}</td>
+
+                  <td>{{ project.projectName }}</td>
+
+                  <td>{{ project.totalWorkLogs }}</td>
+
+                  <td>
+                    {{
+                      project.totalHours
+                        | number: '1.1-2'
+                    }}
+                  </td>
+
+                  <td>
+                    {{
+                      project.averageProgress
+                        | number: '1.0-2'
+                    }}%
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    <section class="report-card">
+      <div class="card-heading">
+        <div>
+          <h2>Work Log Details</h2>
+
+          <p>
+            {{ data.fromDate | date: 'dd/MM/yyyy' }}
+            to
+            {{ data.toDate | date: 'dd/MM/yyyy' }}
+          </p>
+        </div>
+      </div>
+
+      @if (data.workLogs.length === 0) {
+        <div class="empty-state">
+          No work logs were found for the selected
+          filters.
+        </div>
+      } @else {
+        <div class="table-container">
+          <table class="work-log-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Employee</th>
+                <th>Project</th>
+                <th>Task</th>
+                <th>Hours</th>
+                <th>Progress</th>
+                <th>Status</th>
+                <th>Description</th>
+                <th>Blockers</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (
+                workLog of data.workLogs;
+                track workLog.id
+              ) {
+                <tr>
+                  <td>
+                    {{
+                      workLog.workDate
+                        | date: 'dd/MM/yyyy'
+                    }}
+                  </td>
+
+                  <td>
+                    <strong>
+                      {{ workLog.employeeName }}
+                    </strong>
+
+                    <small>
+                      {{ workLog.employeeCode }}
+                    </small>
+                  </td>
+
+                  <td>
+                    <strong>
+                      {{ workLog.projectName }}
+                    </strong>
+
+                    <small>
+                      {{ workLog.projectCode }}
+                    </small>
+                  </td>
+
+                  <td>
+                    @if (workLog.taskTitle) {
+                      <strong>
+                        {{ workLog.taskTitle }}
+                      </strong>
+
+                      <small>
+                        {{ workLog.taskCode }}
+                      </small>
+                    } @else {
+                      <span>-</span>
+                    }
+                  </td>
+
+                  <td>
+                    {{
+                      workLog.hoursWorked
+                        | number: '1.1-2'
+                    }}
+                  </td>
+
+                  <td>
+                    {{ workLog.progressPercentage }}%
+                  </td>
+
+                  <td>
+                    <span
+                      class="status-badge"
+                      [class]="
+                        'status-badge ' +
+                        getStatusClass(workLog.status)
+                      "
+                    >
+                      {{ workLog.status }}
+                    </span>
+                  </td>
+
+                  <td>
+                    {{ workLog.workDescription }}
+                  </td>
+
+                  <td>
+                    {{ workLog.blockers || '-' }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  }
+</section>

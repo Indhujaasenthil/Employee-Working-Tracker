@@ -1,0 +1,309 @@
+<main class="page-container">
+  <header class="page-header">
+    <div>
+      <h1>Employee Management</h1>
+      <p>Manage employee information</p>
+    </div>
+
+    <button
+      class="refresh-button"
+      type="button"
+      (click)="loadEmployees()"
+      [disabled]="loading()">
+      Refresh
+    </button>
+  </header>
+
+  <section class="form-card">
+    <div class="section-heading">
+      <h2>
+        {{ editingId() === null
+          ? 'Add Employee'
+          : 'Edit Employee' }}
+      </h2>
+
+      <p>Enter the employee information below.</p>
+    </div>
+
+    @if (successMessage()) {
+      <div class="message success">
+        {{ successMessage() }}
+      </div>
+    }
+
+    @if (errorMessage()) {
+      <div class="message error">
+        {{ errorMessage() }}
+      </div>
+    }
+
+    <form
+      [formGroup]="employeeForm"
+      (ngSubmit)="saveEmployee()">
+
+      <div class="form-grid">
+        <div class="form-field">
+          <label for="employeeCode">
+            Employee Code
+          </label>
+
+          <input
+            id="employeeCode"
+            type="text"
+            formControlName="employeeCode"
+            placeholder="Example: EMP002"
+            maxlength="20">
+
+          @if (isInvalid('employeeCode')) {
+            <small class="validation-error">
+              Employee code is required.
+            </small>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="fullName">
+            Full Name
+          </label>
+
+          <input
+            id="fullName"
+            type="text"
+            formControlName="fullName"
+            placeholder="Enter employee name"
+            maxlength="100">
+
+          @if (isInvalid('fullName')) {
+            <small class="validation-error">
+              Full name is required.
+            </small>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="email">
+            Email
+          </label>
+
+          <input
+            id="email"
+            type="email"
+            formControlName="email"
+            placeholder="name@example.com"
+            maxlength="150">
+
+          @if (isInvalid('email')) {
+            <small class="validation-error">
+              Enter a valid email address.
+            </small>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="department">
+            Department
+          </label>
+
+          <select
+            id="department"
+            formControlName="department">
+
+            <option value="">
+              Select department
+            </option>
+
+            @for (
+              department of departments();
+              track department.id
+            ) {
+              <option
+                [value]="department.departmentName">
+                {{ department.departmentName }}
+              </option>
+            }
+          </select>
+
+          @if (isInvalid('department')) {
+            <small class="validation-error">
+              Department is required.
+            </small>
+          }
+
+          @if (departments().length === 0) {
+            <small class="information-message">
+              Add an active department first.
+            </small>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="designation">
+            Designation
+          </label>
+
+          <select
+            id="designation"
+            formControlName="designation">
+
+            <option value="">
+              Select designation
+            </option>
+
+            @for (
+              designation of designations();
+              track designation.id
+            ) {
+              <option
+                [value]="designation.designationName">
+                {{ designation.designationName }}
+              </option>
+            }
+          </select>
+
+          @if (isInvalid('designation')) {
+            <small class="validation-error">
+              Designation is required.
+            </small>
+          }
+
+          @if (designations().length === 0) {
+            <small class="information-message">
+              Add an active designation first.
+            </small>
+          }
+        </div>
+
+        <div class="checkbox-field">
+          <input
+            id="isActive"
+            type="checkbox"
+            formControlName="isActive">
+
+          <label for="isActive">
+            Active Employee
+          </label>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button
+          class="primary-button"
+          type="submit"
+          [disabled]="saving()">
+
+          @if (saving()) {
+            Saving...
+          } @else if (editingId() === null) {
+            Add Employee
+          } @else {
+            Update Employee
+          }
+        </button>
+
+        <button
+          class="secondary-button"
+          type="button"
+          (click)="resetForm()"
+          [disabled]="saving()">
+          {{ editingId() === null ? 'Clear' : 'Cancel' }}
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <section class="list-card">
+    <div class="section-heading">
+      <h2>Employee List</h2>
+
+      <p>
+        Total employees:
+        {{ employees().length }}
+      </p>
+    </div>
+
+    @if (loading()) {
+      <div class="empty-message">
+        Loading employees...
+      </div>
+    } @else if (employees().length === 0) {
+      <div class="empty-message">
+        No employee records found.
+      </div>
+    } @else {
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Employee Name</th>
+              <th>Email</th>
+              <th>Department</th>
+              <th>Designation</th>
+              <th>Status</th>
+              <th class="actions-column">
+                Actions
+              </th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (
+              employee of employees();
+              track employee.id
+            ) {
+              <tr>
+                <td>
+                  {{ employee.employeeCode }}
+                </td>
+
+                <td>
+                  {{ employee.fullName }}
+                </td>
+
+                <td>
+                  {{ employee.email }}
+                </td>
+
+                <td>
+                  {{ employee.department }}
+                </td>
+
+                <td>
+                  {{ employee.designation }}
+                </td>
+
+                <td>
+                  <span
+                    class="status"
+                    [class.active]="employee.isActive"
+                    [class.inactive]="!employee.isActive">
+
+                    {{ employee.isActive
+                      ? 'Active'
+                      : 'Inactive' }}
+                  </span>
+                </td>
+
+                <td class="actions">
+                  <button
+                    class="edit-button"
+                    type="button"
+                    (click)="editEmployee(employee)">
+                    Edit
+                  </button>
+
+                  <button
+                    class="delete-button"
+                    type="button"
+                    (click)="deleteEmployee(employee)">
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+</main>

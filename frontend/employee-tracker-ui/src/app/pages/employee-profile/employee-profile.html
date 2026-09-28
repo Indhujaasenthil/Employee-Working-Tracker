@@ -1,0 +1,143 @@
+<main class="page-container">
+  <header class="page-header">
+    <div>
+      <h1>My Profile</h1>
+
+      <p>
+        View your employee information
+      </p>
+    </div>
+
+    <button
+      class="refresh-button"
+      type="button"
+      [disabled]="loading()"
+      (click)="loadProfile()">
+
+      {{ loading() ? 'Loading...' : 'Refresh' }}
+    </button>
+  </header>
+
+  @if (errorMessage()) {
+    <div class="message error">
+      {{ errorMessage() }}
+    </div>
+  }
+
+  @if (loading()) {
+    <section class="profile-card">
+      <div class="empty-message">
+        Loading your profile...
+      </div>
+    </section>
+  } @else if (profile(); as employee) {
+    <section class="profile-card">
+      <div class="profile-header">
+        <div class="profile-avatar">
+          {{
+            employee.fullName
+              ? employee.fullName
+                  .charAt(0)
+                  .toUpperCase()
+              : 'E'
+          }}
+        </div>
+
+        <div class="profile-heading">
+          <h2>
+            {{ employee.fullName }}
+          </h2>
+
+          <p>
+            {{ employee.employeeCode }}
+          </p>
+
+          <span
+            class="status-badge"
+            [class.active]="employee.isActive"
+            [class.inactive]="!employee.isActive">
+
+            {{
+              employee.isActive
+                ? 'Active Employee'
+                : 'Inactive Employee'
+            }}
+          </span>
+        </div>
+      </div>
+
+      <div class="profile-divider"></div>
+
+      <div class="profile-grid">
+        <div class="profile-field">
+          <span class="field-label">
+            Employee Code
+          </span>
+
+          <strong class="field-value">
+            {{ employee.employeeCode }}
+          </strong>
+        </div>
+
+        <div class="profile-field">
+          <span class="field-label">
+            Full Name
+          </span>
+
+          <strong class="field-value">
+            {{ employee.fullName }}
+          </strong>
+        </div>
+
+        <div class="profile-field">
+          <span class="field-label">
+            Email Address
+          </span>
+
+          <strong class="field-value">
+            {{ employee.email }}
+          </strong>
+        </div>
+
+        <div class="profile-field">
+          <span class="field-label">
+            Department
+          </span>
+
+          <strong class="field-value">
+            {{ employee.department }}
+          </strong>
+        </div>
+
+        <div class="profile-field">
+          <span class="field-label">
+            Designation
+          </span>
+
+          <strong class="field-value">
+            {{ employee.designation }}
+          </strong>
+        </div>
+
+        <div class="profile-field">
+          <span class="field-label">
+            Employee Since
+          </span>
+
+          <strong class="field-value">
+            {{
+              employee.createdAt
+                | date: 'dd/MM/yyyy'
+            }}
+          </strong>
+        </div>
+      </div>
+    </section>
+  } @else if (!errorMessage()) {
+    <section class="profile-card">
+      <div class="empty-message">
+        No employee profile was found.
+      </div>
+    </section>
+  }
+</main>

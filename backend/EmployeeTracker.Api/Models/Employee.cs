@@ -32,20 +32,14 @@ public class Employee
     public string Designation { get; set; } =
         string.Empty;
 
-    /*
-     * ManagerId is optional because managers and
-     * administrators may not report to another employee.
-     */
+    // Employee this person reports to.
+    // Null means this employee has no manager.
     public int? ManagerId { get; set; }
 
-    /*
-     * Employee who manages this employee.
-     */
+    // Navigation property for the manager.
     public Employee? Manager { get; set; }
 
-    /*
-     * Employees who report to this employee.
-     */
+    // Employees who report to this employee.
     public ICollection<Employee> TeamMembers { get; set; } =
         new List<Employee>();
 

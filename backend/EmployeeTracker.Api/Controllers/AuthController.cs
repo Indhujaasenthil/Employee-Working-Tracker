@@ -1,8 +1,11 @@
+
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+
 using EmployeeTracker.Api.Data;
 using EmployeeTracker.Api.Models;
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -17,25 +20,27 @@ public class AuthController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly IConfiguration _configuration;
-    private readonly PasswordHasher<AppUser> _passwordHasher;
+    private readonly IPasswordHasher<AppUser> _passwordHasher;
 
     public AuthController(
         AppDbContext context,
-        IConfiguration configuration
-    )
+        IConfiguration configuration,
+        IPasswordHasher<AppUser> passwordHasher)
     {
         _context = context;
         _configuration = configuration;
-
-        _passwordHasher =
-            new PasswordHasher<AppUser>();
+        _passwordHasher = passwordHasher;
     }
+
+    // ==========================================
+    // LOGIN
+    // POST: api/auth/login
+    // ==========================================
 
     [AllowAnonymous]
     [HttpPost("login")]
     public async Task<ActionResult<LoginResponse>> Login(
-        LoginRequest request
-    )
+        [FromBody] LoginRequest request)
     {
         var userName =
             request.UserName?.Trim() ?? string.Empty;
@@ -54,39 +59,54 @@ public class AuthController : ControllerBase
             .AsNoTracking()
             .FirstOrDefaultAsync(item =>
                 item.UserName.ToLower() ==
-                userName.ToLower()
-            );
+                userName.ToLower());
 
         if (user is null)
         {
-            return Unauthorized(new
-            {
-                message =
-                    "Invalid username or password."
-            });
+            return InvalidCredentials();
         }
 
         var verificationResult =
             _passwordHasher.VerifyHashedPassword(
                 user,
                 user.PasswordHash,
-                request.Password
-            );
+                request.Password);
 
         if (verificationResult ==
             PasswordVerificationResult.Failed)
         {
+            return InvalidCredentials();
+        }
+
+        // Validate the application role.
+        var isAdministrator = string.Equals(
+            user.Role,
+            "Administrator",
+            StringComparison.OrdinalIgnoreCase);
+
+        var isManager = string.Equals(
+            user.Role,
+            "Manager",
+            StringComparison.OrdinalIgnoreCase);
+
+        var isEmployee = string.Equals(
+            user.Role,
+            "Employee",
+            StringComparison.OrdinalIgnoreCase);
+
+        if (!isAdministrator &&
+            !isManager &&
+            !isEmployee)
+        {
             return Unauthorized(new
             {
-                message =
-                    "Invalid username or password."
+                message = "Invalid user role."
             });
         }
 
-        if (user.Role.Equals(
-                "Employee",
-                StringComparison.OrdinalIgnoreCase
-            ) &&
+        // Manager and Employee accounts must
+        // be linked to an Employee record.
+        if ((isManager || isEmployee) &&
             !user.EmployeeId.HasValue)
         {
             return Unauthorized(new
@@ -96,98 +116,122 @@ public class AuthController : ControllerBase
             });
         }
 
+        // Check linked Employee active status.
         if (user.EmployeeId.HasValue)
         {
             var employeeIsActive =
-                await _context.Employees.AnyAsync(employee =>
-                    employee.Id == user.EmployeeId.Value &&
-                    employee.IsActive
-                );
+                await _context.Employees
+                    .AsNoTracking()
+                    .AnyAsync(employee =>
+                        employee.Id == user.EmployeeId.Value &&
+                        employee.IsActive);
 
             if (!employeeIsActive)
             {
                 return Unauthorized(new
                 {
                     message =
-                        "The employee account is inactive."
+                        "The linked employee account is inactive or missing."
                 });
             }
         }
+
+        // Normalize role name for JWT claims.
+        var normalizedRole =
+            isAdministrator
+                ? "Administrator"
+                : isManager
+                    ? "Manager"
+                    : "Employee";
 
         var expiresAt =
             DateTime.UtcNow.AddHours(8);
 
         var token = CreateToken(
             user,
-            expiresAt
-        );
+            normalizedRole,
+            expiresAt);
 
         return Ok(new LoginResponse
         {
             Token = token,
             UserName = user.UserName,
-            Role = user.Role,
+            Role = normalizedRole,
             ExpiresAt = expiresAt
         });
     }
 
+    // ==========================================
+    // CHANGE PASSWORD
+    // POST: api/auth/change-password
+    // ==========================================
+
     [Authorize]
     [HttpPost("change-password")]
-    public async Task<ActionResult> ChangePassword(
-        ChangePasswordRequest request
-    )
+    public async Task<IActionResult> ChangePassword(
+        [FromBody] ChangePasswordRequest request)
     {
         if (string.IsNullOrWhiteSpace(
-                request.CurrentPassword
-            ))
+            request.CurrentPassword))
         {
             return BadRequest(new
             {
-                message =
-                    "Current password is required."
+                message = "Current password is required."
             });
         }
 
         if (string.IsNullOrWhiteSpace(
-                request.NewPassword
-            ) ||
-            request.NewPassword.Length < 6)
+            request.NewPassword) ||
+            request.NewPassword.Length < 8)
         {
             return BadRequest(new
             {
                 message =
-                    "New password must contain at least 6 characters."
+                    "New password must contain at least 8 characters."
             });
         }
 
-        var userIdValue =
-            User.FindFirstValue(
-                ClaimTypes.NameIdentifier
-            );
+        if (request.NewPassword.Length > 128)
+        {
+            return BadRequest(new
+            {
+                message =
+                    "New password cannot exceed 128 characters."
+            });
+        }
+
+        if (request.CurrentPassword ==
+            request.NewPassword)
+        {
+            return BadRequest(new
+            {
+                message =
+                    "New password must be different from the current password."
+            });
+        }
+
+        var userIdValue = User.FindFirstValue(
+            ClaimTypes.NameIdentifier);
 
         if (!int.TryParse(
-                userIdValue,
-                out var userId
-            ))
+            userIdValue,
+            out var userId))
         {
             return Unauthorized(new
             {
-                message =
-                    "The login token is invalid."
+                message = "The login token is invalid."
             });
         }
 
         var user = await _context.AppUsers
             .FirstOrDefaultAsync(item =>
-                item.Id == userId
-            );
+                item.Id == userId);
 
         if (user is null)
         {
-            return NotFound(new
+            return Unauthorized(new
             {
-                message =
-                    "User account was not found."
+                message = "User account was not found."
             });
         }
 
@@ -195,8 +239,7 @@ public class AuthController : ControllerBase
             _passwordHasher.VerifyHashedPassword(
                 user,
                 user.PasswordHash,
-                request.CurrentPassword
-            );
+                request.CurrentPassword);
 
         if (verificationResult ==
             PasswordVerificationResult.Failed)
@@ -211,8 +254,7 @@ public class AuthController : ControllerBase
         user.PasswordHash =
             _passwordHasher.HashPassword(
                 user,
-                request.NewPassword
-            );
+                request.NewPassword);
 
         await _context.SaveChangesAsync();
 
@@ -223,10 +265,14 @@ public class AuthController : ControllerBase
         });
     }
 
+    // ==========================================
+    // GENERATE JWT TOKEN
+    // ==========================================
+
     private string CreateToken(
         AppUser user,
-        DateTime expiresAt
-    )
+        string role,
+        DateTime expiresAt)
     {
         var jwtKey =
             _configuration["Jwt:Key"];
@@ -240,50 +286,61 @@ public class AuthController : ControllerBase
         if (string.IsNullOrWhiteSpace(jwtKey))
         {
             throw new InvalidOperationException(
-                "JWT key is not configured."
-            );
+                "JWT key is not configured.");
+        }
+
+        if (string.IsNullOrWhiteSpace(jwtIssuer))
+        {
+            throw new InvalidOperationException(
+                "JWT issuer is not configured.");
+        }
+
+        if (string.IsNullOrWhiteSpace(jwtAudience))
+        {
+            throw new InvalidOperationException(
+                "JWT audience is not configured.");
+        }
+
+        if (Encoding.UTF8.GetByteCount(jwtKey) < 32)
+        {
+            throw new InvalidOperationException(
+                "JWT signing key must be at least 32 bytes.");
         }
 
         var claims = new List<Claim>
         {
-            new(
+            new Claim(
                 ClaimTypes.NameIdentifier,
-                user.Id.ToString()
-            ),
-            new(
+                user.Id.ToString()),
+
+            new Claim(
                 ClaimTypes.Name,
-                user.UserName
-            ),
-            new(
+                user.UserName),
+
+            new Claim(
                 ClaimTypes.Role,
-                user.Role
-            ),
-            new(
+                role),
+
+            new Claim(
                 JwtRegisteredClaimNames.Jti,
-                Guid.NewGuid().ToString()
-            )
+                Guid.NewGuid().ToString())
         };
 
         if (user.EmployeeId.HasValue)
         {
-            claims.Add(
-                new Claim(
-                    "employeeId",
-                    user.EmployeeId.Value.ToString()
-                )
-            );
+            claims.Add(new Claim(
+                "employeeId",
+                user.EmployeeId.Value.ToString()));
         }
 
         var securityKey =
             new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(jwtKey)
-            );
+                Encoding.UTF8.GetBytes(jwtKey));
 
         var credentials =
             new SigningCredentials(
                 securityKey,
-                SecurityAlgorithms.HmacSha256
-            );
+                SecurityAlgorithms.HmacSha256);
 
         var token = new JwtSecurityToken(
             issuer: jwtIssuer,
@@ -291,10 +348,22 @@ public class AuthController : ControllerBase
             claims: claims,
             notBefore: DateTime.UtcNow,
             expires: expiresAt,
-            signingCredentials: credentials
-        );
+            signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler()
             .WriteToken(token);
+    }
+
+    // ==========================================
+    // INVALID CREDENTIALS RESPONSE
+    // ==========================================
+
+    private UnauthorizedObjectResult InvalidCredentials()
+    {
+        return Unauthorized(new
+        {
+            message =
+                "Invalid username or password."
+        });
     }
 }

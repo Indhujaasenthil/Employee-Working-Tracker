@@ -1,17 +1,28 @@
+
 import {
   Component,
   inject,
   signal
 } from '@angular/core';
+
 import {
   FormBuilder,
   ReactiveFormsModule,
   Validators
 } from '@angular/forms';
+
 import {
   HttpErrorResponse
 } from '@angular/common/http';
-import { Router } from '@angular/router';
+
+import {
+  ActivatedRoute,
+  Router
+} from '@angular/router';
+
+import {
+  finalize
+} from 'rxjs';
 
 import {
   AuthService
@@ -33,6 +44,9 @@ export class LoginComponent {
 
   private readonly router =
     inject(Router);
+
+  private readonly activatedRoute =
+    inject(ActivatedRoute);
 
   readonly loading = signal(false);
   readonly errorMessage = signal('');
@@ -57,11 +71,15 @@ export class LoginComponent {
 
   constructor() {
     if (this.authService.isAuthenticated()) {
-      void this.router.navigate(['/dashboard']);
+      this.navigateAfterLogin();
     }
   }
 
   login(): void {
+    if (this.loading()) {
+      return;
+    }
+
     this.errorMessage.set('');
 
     if (this.loginForm.invalid) {
@@ -69,36 +87,75 @@ export class LoginComponent {
       return;
     }
 
+    const userName =
+      this.loginForm.controls.userName.value.trim();
+
+    if (!userName) {
+      this.loginForm.controls.userName.setErrors({
+        required: true
+      });
+
+      this.loginForm.controls.userName.markAsTouched();
+      return;
+    }
+
     this.loading.set(true);
 
     const request = {
-      userName:
-        this.loginForm.controls.userName.value.trim(),
-
+      userName,
       password:
         this.loginForm.controls.password.value
     };
 
-    this.authService.login(request).subscribe({
-      next: () => {
-        this.loading.set(false);
+    this.authService.login(request)
+      .pipe(
+        finalize(() => {
+          this.loading.set(false);
+        })
+      )
+      .subscribe({
+        next: () => {
+          this.navigateAfterLogin();
+        },
 
-        void this.router.navigate(['/dashboard']);
-      },
+        error: (error: HttpErrorResponse) => {
+          if (error.status === 401) {
+            this.errorMessage.set(
+              'Invalid username or password.'
+            );
+          } else if (error.status === 0) {
+            this.errorMessage.set(
+              'Unable to connect to the server. ' +
+              'Please check that the backend is running.'
+            );
+          } else {
+            this.errorMessage.set(
+              'Unable to sign in. Please try again.'
+            );
+          }
+        }
+      });
+  }
 
-      error: (error: HttpErrorResponse) => {
-        console.error('Login error:', error);
+  private navigateAfterLogin(): void {
+    const returnUrl =
+      this.activatedRoute.snapshot.queryParamMap
+        .get('returnUrl');
 
-        this.errorMessage.set(
-          error.status === 401
-            ? 'Invalid username or password.'
-            : error.error?.message ??
-              'Unable to sign in. Check that the backend is running.'
-        );
+    // Only allow internal application paths.
+    const safeReturnUrl =
+      returnUrl &&
+      returnUrl.startsWith('/') &&
+      !returnUrl.startsWith('//') &&
+      !returnUrl.startsWith('/\\') &&
+      !returnUrl.includes('\\') &&
+      !returnUrl.includes('://') &&
+      !returnUrl.startsWith('/login') &&
+      !returnUrl.startsWith('/%')
+        ? returnUrl
+        : '/dashboard';
 
-        this.loading.set(false);
-      }
-    });
+    void this.router.navigateByUrl(safeReturnUrl);
   }
 
   isInvalid(

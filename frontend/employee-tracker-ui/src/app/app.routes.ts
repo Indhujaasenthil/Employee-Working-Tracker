@@ -1,3 +1,4 @@
+
 import {
   Routes
 } from '@angular/router';
@@ -10,65 +11,9 @@ import {
   roleGuard
 } from './guards/role.guard';
 
-import {
-  LoginComponent
-} from './pages/login/login';
-
-import {
-  DashboardComponent
-} from './pages/dashboard/dashboard';
-
-import {
-  EmployeeComponent
-} from './pages/employee/employee';
-
-import {
-  EmployeeManagerComponent
-} from './pages/employee-manager/employee-manager';
-
-import {
-  DepartmentComponent
-} from './pages/department/department';
-
-import {
-  DesignationComponent
-} from './pages/designation/designation';
-
-import {
-  ProjectComponent
-} from './pages/project/project';
-
-import {
-  ProjectMemberComponent
-} from './pages/project-member/project-member';
-
-import {
-  WorkTaskComponent
-} from './pages/work-task/work-task';
-
-import {
-  WorkLogComponent
-} from './pages/work-log/work-log';
-
-import {
-  WorkLogApprovalComponent
-} from './pages/work-log-approval/work-log-approval';
-
-import {
-  ReportComponent
-} from './pages/report/report';
-
-import {
-  UserComponent
-} from './pages/user/user';
-
-import {
-  EmployeeProfileComponent
-} from './pages/employee-profile/employee-profile';
-
-import {
-  ChangePasswordComponent
-} from './pages/change-password/change-password';
+// ==========================================
+// USER ROLES
+// ==========================================
 
 const allRoles = [
   'Administrator',
@@ -85,16 +30,33 @@ const administratorRoles = [
   'Administrator'
 ];
 
+// ==========================================
+// APPLICATION ROUTES
+// ==========================================
+
 export const routes: Routes = [
+
+  // ========================================
+  // LOGIN
+  // ========================================
+
   {
     path: 'login',
-    component: LoginComponent,
+    loadComponent: () =>
+      import('./pages/login/login')
+        .then(m => m.LoginComponent),
     title: 'Login'
   },
 
+  // ========================================
+  // DASHBOARD
+  // ========================================
+
   {
     path: 'dashboard',
-    component: DashboardComponent,
+    loadComponent: () =>
+      import('./pages/dashboard/dashboard')
+        .then(m => m.DashboardComponent),
     canActivate: [
       authGuard,
       roleGuard
@@ -105,9 +67,15 @@ export const routes: Routes = [
     title: 'Dashboard'
   },
 
+  // ========================================
+  // EMPLOYEES
+  // ========================================
+
   {
     path: 'employees',
-    component: EmployeeComponent,
+    loadComponent: () =>
+      import('./pages/employee/employee')
+        .then(m => m.EmployeeComponent),
     canActivate: [
       authGuard,
       roleGuard
@@ -118,9 +86,15 @@ export const routes: Routes = [
     title: 'Employees'
   },
 
+  // ========================================
+  // MANAGER ASSIGNMENT
+  // ========================================
+
   {
     path: 'employee-managers',
-    component: EmployeeManagerComponent,
+    loadComponent: () =>
+      import('./pages/employee-manager/employee-manager')
+        .then(m => m.EmployeeManagerComponent),
     canActivate: [
       authGuard,
       roleGuard
@@ -131,9 +105,15 @@ export const routes: Routes = [
     title: 'Manager Assignment'
   },
 
+  // ========================================
+  // DEPARTMENTS
+  // ========================================
+
   {
     path: 'departments',
-    component: DepartmentComponent,
+    loadComponent: () =>
+      import('./pages/department/department')
+        .then(m => m.DepartmentComponent),
     canActivate: [
       authGuard,
       roleGuard
@@ -144,9 +124,15 @@ export const routes: Routes = [
     title: 'Departments'
   },
 
+  // ========================================
+  // DESIGNATIONS
+  // ========================================
+
   {
     path: 'designations',
-    component: DesignationComponent,
+    loadComponent: () =>
+      import('./pages/designation/designation')
+        .then(m => m.DesignationComponent),
     canActivate: [
       authGuard,
       roleGuard
@@ -157,9 +143,15 @@ export const routes: Routes = [
     title: 'Designations'
   },
 
+  // ========================================
+  // PROJECTS
+  // ========================================
+
   {
     path: 'projects',
-    component: ProjectComponent,
+    loadComponent: () =>
+      import('./pages/project/project')
+        .then(m => m.ProjectComponent),
     canActivate: [
       authGuard,
       roleGuard
@@ -170,9 +162,15 @@ export const routes: Routes = [
     title: 'Projects'
   },
 
+  // ========================================
+  // PROJECT TEAM
+  // ========================================
+
   {
     path: 'project-team',
-    component: ProjectMemberComponent,
+    loadComponent: () =>
+      import('./pages/project-member/project-member')
+        .then(m => m.ProjectMemberComponent),
     canActivate: [
       authGuard,
       roleGuard
@@ -183,9 +181,15 @@ export const routes: Routes = [
     title: 'Project Team'
   },
 
+  // ========================================
+  // TASKS
+  // ========================================
+
   {
     path: 'tasks',
-    component: WorkTaskComponent,
+    loadComponent: () =>
+      import('./pages/work-task/work-task')
+        .then(m => m.WorkTaskComponent),
     canActivate: [
       authGuard,
       roleGuard
@@ -196,9 +200,15 @@ export const routes: Routes = [
     title: 'Tasks'
   },
 
+  // ========================================
+  // WORK LOGS
+  // ========================================
+
   {
     path: 'work-logs',
-    component: WorkLogComponent,
+    loadComponent: () =>
+      import('./pages/work-log/work-log')
+        .then(m => m.WorkLogComponent),
     canActivate: [
       authGuard,
       roleGuard
@@ -209,9 +219,15 @@ export const routes: Routes = [
     title: 'Work Logs'
   },
 
+  // ========================================
+  // WORK LOG APPROVALS
+  // ========================================
+
   {
     path: 'work-log-approvals',
-    component: WorkLogApprovalComponent,
+    loadComponent: () =>
+      import('./pages/work-log-approval/work-log-approval')
+        .then(m => m.WorkLogApprovalComponent),
     canActivate: [
       authGuard,
       roleGuard
@@ -222,9 +238,15 @@ export const routes: Routes = [
     title: 'Work Log Approvals'
   },
 
+  // ========================================
+  // REPORTS
+  // ========================================
+
   {
     path: 'reports',
-    component: ReportComponent,
+    loadComponent: () =>
+      import('./pages/report/report')
+        .then(m => m.ReportComponent),
     canActivate: [
       authGuard,
       roleGuard
@@ -235,9 +257,15 @@ export const routes: Routes = [
     title: 'Reports'
   },
 
+  // ========================================
+  // USER MANAGEMENT
+  // ========================================
+
   {
     path: 'users',
-    component: UserComponent,
+    loadComponent: () =>
+      import('./pages/user/user')
+        .then(m => m.UserComponent),
     canActivate: [
       authGuard,
       roleGuard
@@ -248,9 +276,15 @@ export const routes: Routes = [
     title: 'User Management'
   },
 
+  // ========================================
+  // MY PROFILE
+  // ========================================
+
   {
     path: 'profile',
-    component: EmployeeProfileComponent,
+    loadComponent: () =>
+      import('./pages/employee-profile/employee-profile')
+        .then(m => m.EmployeeProfileComponent),
     canActivate: [
       authGuard,
       roleGuard
@@ -261,9 +295,15 @@ export const routes: Routes = [
     title: 'My Profile'
   },
 
+  // ========================================
+  // CHANGE PASSWORD
+  // ========================================
+
   {
     path: 'change-password',
-    component: ChangePasswordComponent,
+    loadComponent: () =>
+      import('./pages/change-password/change-password')
+        .then(m => m.ChangePasswordComponent),
     canActivate: [
       authGuard,
       roleGuard
@@ -274,11 +314,19 @@ export const routes: Routes = [
     title: 'Change Password'
   },
 
+  // ========================================
+  // DEFAULT ROUTE
+  // ========================================
+
   {
     path: '',
     pathMatch: 'full',
     redirectTo: 'dashboard'
   },
+
+  // ========================================
+  // UNKNOWN ROUTES
+  // ========================================
 
   {
     path: '**',

@@ -34,7 +34,8 @@ public class AppDbContext : DbContext
 
     public DbSet<AppUser> AppUsers =>
         Set<AppUser>();
-
+    public DbSet<ProjectFile> ProjectFiles =>
+     Set<ProjectFile>();
     protected override void OnModelCreating(
         ModelBuilder modelBuilder
     )

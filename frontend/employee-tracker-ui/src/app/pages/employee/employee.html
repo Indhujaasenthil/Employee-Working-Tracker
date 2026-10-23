@@ -1,5 +1,11 @@
 <main class="page-container">
+
+  <!-- =====================================================
+       PAGE HEADER
+       ===================================================== -->
+
   <header class="page-header">
+
     <div>
       <h1>Employee Management</h1>
       <p>Manage employee information</p>
@@ -10,300 +16,643 @@
       type="button"
       (click)="loadEmployees()"
       [disabled]="loading()">
+
       Refresh
+
     </button>
+
   </header>
 
-  <section class="form-card">
-    <div class="section-heading">
-      <h2>
-        {{ editingId() === null
-          ? 'Add Employee'
-          : 'Edit Employee' }}
-      </h2>
 
-      <p>Enter the employee information below.</p>
+  <!-- =====================================================
+       GLOBAL MESSAGES FOR MANAGER / LIST
+       ===================================================== -->
+
+  @if (!isAdministrator && successMessage()) {
+
+    <div class="message success">
+      {{ successMessage() }}
     </div>
 
-    @if (successMessage()) {
-      <div class="message success">
-        {{ successMessage() }}
+  }
+
+  @if (!isAdministrator && errorMessage()) {
+
+    <div class="message error">
+      {{ errorMessage() }}
+    </div>
+
+  }
+
+
+  <!-- =====================================================
+       ADMINISTRATOR ONLY
+       ADD / EDIT EMPLOYEE FORM
+       ===================================================== -->
+
+  @if (isAdministrator) {
+
+    <section class="form-card">
+
+      <div class="section-heading">
+
+        <h2>
+          {{
+            editingId() === null
+              ? 'Add Employee'
+              : 'Edit Employee'
+          }}
+        </h2>
+
+        <p>
+          Enter the employee information below.
+        </p>
+
       </div>
-    }
 
-    @if (errorMessage()) {
-      <div class="message error">
-        {{ errorMessage() }}
-      </div>
-    }
 
-    <form
-      [formGroup]="employeeForm"
-      (ngSubmit)="saveEmployee()">
+      <!-- Success Message -->
 
-      <div class="form-grid">
-        <div class="form-field">
-          <label for="employeeCode">
-            Employee Code
-          </label>
+      @if (successMessage()) {
 
-          <input
-            id="employeeCode"
-            type="text"
-            formControlName="employeeCode"
-            placeholder="Example: EMP002"
-            maxlength="20">
-
-          @if (isInvalid('employeeCode')) {
-            <small class="validation-error">
-              Employee code is required.
-            </small>
-          }
+        <div class="message success">
+          {{ successMessage() }}
         </div>
 
-        <div class="form-field">
-          <label for="fullName">
-            Full Name
-          </label>
+      }
 
-          <input
-            id="fullName"
-            type="text"
-            formControlName="fullName"
-            placeholder="Enter employee name"
-            maxlength="100">
 
-          @if (isInvalid('fullName')) {
-            <small class="validation-error">
-              Full name is required.
-            </small>
-          }
+      <!-- Error Message -->
+
+      @if (errorMessage()) {
+
+        <div class="message error">
+          {{ errorMessage() }}
         </div>
 
-        <div class="form-field">
-          <label for="email">
-            Email
-          </label>
+      }
 
-          <input
-            id="email"
-            type="email"
-            formControlName="email"
-            placeholder="name@example.com"
-            maxlength="150">
 
-          @if (isInvalid('email')) {
-            <small class="validation-error">
-              Enter a valid email address.
-            </small>
-          }
-        </div>
+      <!-- Employee Form -->
 
-        <div class="form-field">
-          <label for="department">
-            Department
-          </label>
+      <form
+        [formGroup]="employeeForm"
+        (ngSubmit)="saveEmployee()">
 
-          <select
-            id="department"
-            formControlName="department">
+        <div class="form-grid">
 
-            <option value="">
-              Select department
-            </option>
 
-            @for (
-              department of departments();
-              track department.id
+          <!-- =================================================
+               Employee Code
+               ================================================= -->
+
+          <div class="form-field">
+
+            <label for="employeeCode">
+              Employee Code
+            </label>
+
+            <input
+              id="employeeCode"
+              type="text"
+              formControlName="employeeCode"
+              placeholder="Example: EMP002"
+              maxlength="20">
+
+            @if (
+              isInvalid('employeeCode')
             ) {
-              <option
-                [value]="department.departmentName">
-                {{ department.departmentName }}
-              </option>
+
+              <small
+                class="validation-error">
+
+                Employee code is required.
+
+              </small>
+
             }
-          </select>
 
-          @if (isInvalid('department')) {
-            <small class="validation-error">
-              Department is required.
-            </small>
-          }
+          </div>
 
-          @if (departments().length === 0) {
-            <small class="information-message">
-              Add an active department first.
-            </small>
-          }
-        </div>
 
-        <div class="form-field">
-          <label for="designation">
-            Designation
-          </label>
+          <!-- =================================================
+               Full Name
+               ================================================= -->
 
-          <select
-            id="designation"
-            formControlName="designation">
+          <div class="form-field">
 
-            <option value="">
-              Select designation
-            </option>
+            <label for="fullName">
+              Full Name
+            </label>
 
-            @for (
-              designation of designations();
-              track designation.id
+            <input
+              id="fullName"
+              type="text"
+              formControlName="fullName"
+              placeholder="Enter employee name"
+              maxlength="100">
+
+            @if (
+              isInvalid('fullName')
             ) {
-              <option
-                [value]="designation.designationName">
-                {{ designation.designationName }}
-              </option>
+
+              <small
+                class="validation-error">
+
+                Full name is required.
+
+              </small>
+
             }
-          </select>
 
-          @if (isInvalid('designation')) {
-            <small class="validation-error">
-              Designation is required.
-            </small>
-          }
+          </div>
 
-          @if (designations().length === 0) {
-            <small class="information-message">
-              Add an active designation first.
+
+          <!-- =================================================
+               Email
+               ================================================= -->
+
+          <div class="form-field">
+
+            <label for="email">
+              Email
+            </label>
+
+            <input
+              id="email"
+              type="email"
+              formControlName="email"
+              placeholder="name@example.com"
+              maxlength="150">
+
+            @if (
+              isInvalid('email')
+            ) {
+
+              <small
+                class="validation-error">
+
+                Enter a valid email address.
+
+              </small>
+
+            }
+
+          </div>
+
+
+          <!-- =================================================
+               Department
+               ================================================= -->
+
+          <div class="form-field">
+
+            <label for="department">
+              Department
+            </label>
+
+            <select
+              id="department"
+              formControlName="department">
+
+              <option value="">
+                Select department
+              </option>
+
+              @for (
+                department of departments();
+                track department.id
+              ) {
+
+                <option
+                  [value]="
+                    department.departmentName
+                  ">
+
+                  {{
+                    department.departmentName
+                  }}
+
+                </option>
+
+              }
+
+            </select>
+
+            @if (
+              isInvalid('department')
+            ) {
+
+              <small
+                class="validation-error">
+
+                Department is required.
+
+              </small>
+
+            }
+
+          </div>
+
+
+          <!-- =================================================
+               Designation
+               ================================================= -->
+
+          <div class="form-field">
+
+            <label for="designation">
+              Designation
+            </label>
+
+            <select
+              id="designation"
+              formControlName="designation">
+
+              <option value="">
+                Select designation
+              </option>
+
+              @for (
+                designation of designations();
+                track designation.id
+              ) {
+
+                <option
+                  [value]="
+                    designation.designationName
+                  ">
+
+                  {{
+                    designation.designationName
+                  }}
+
+                </option>
+
+              }
+
+            </select>
+
+            @if (
+              isInvalid('designation')
+            ) {
+
+              <small
+                class="validation-error">
+
+                Designation is required.
+
+              </small>
+
+            }
+
+          </div>
+
+
+          <!-- =================================================
+               Manager
+               ================================================= -->
+
+          <div class="form-field">
+
+            <label for="managerId">
+              Manager
+            </label>
+
+            <select
+              id="managerId"
+              formControlName="managerId">
+
+              <option [ngValue]="null">
+                No manager
+              </option>
+
+              @for (
+                manager of getManagerOptions();
+                track manager.id
+              ) {
+
+                <option
+                  [ngValue]="manager.id">
+
+                  {{ manager.employeeCode }}
+                  -
+                  {{ manager.fullName }}
+
+                </option>
+
+              }
+
+            </select>
+
+            <small
+              class="information-message">
+
+              Select the employee this person
+              reports to.
+
             </small>
-          }
+
+          </div>
+
+
+          <!-- =================================================
+               Active Employee
+               ================================================= -->
+
+          <div class="checkbox-field">
+
+            <input
+              id="isActive"
+              type="checkbox"
+              formControlName="isActive">
+
+            <label for="isActive">
+              Active Employee
+            </label>
+
+          </div>
+
         </div>
 
-        <div class="checkbox-field">
-          <input
-            id="isActive"
-            type="checkbox"
-            formControlName="isActive">
 
-          <label for="isActive">
-            Active Employee
-          </label>
+        <!-- ===================================================
+             FORM BUTTONS
+             =================================================== -->
+
+        <div class="form-actions">
+
+          <button
+            class="primary-button"
+            type="submit"
+            [disabled]="saving()">
+
+            @if (saving()) {
+
+              Saving...
+
+            } @else if (
+              editingId() === null
+            ) {
+
+              Add Employee
+
+            } @else {
+
+              Update Employee
+
+            }
+
+          </button>
+
+
+          <button
+            class="secondary-button"
+            type="button"
+            (click)="resetForm()"
+            [disabled]="saving()">
+
+            {{
+              editingId() === null
+                ? 'Clear'
+                : 'Cancel'
+            }}
+
+          </button>
+
         </div>
-      </div>
 
-      <div class="form-actions">
-        <button
-          class="primary-button"
-          type="submit"
-          [disabled]="saving()">
+      </form>
 
-          @if (saving()) {
-            Saving...
-          } @else if (editingId() === null) {
-            Add Employee
-          } @else {
-            Update Employee
-          }
-        </button>
+    </section>
 
-        <button
-          class="secondary-button"
-          type="button"
-          (click)="resetForm()"
-          [disabled]="saving()">
-          {{ editingId() === null ? 'Clear' : 'Cancel' }}
-        </button>
-      </div>
-    </form>
-  </section>
+  }
+
+
+  <!-- =====================================================
+       EMPLOYEE LIST
+       ADMIN + MANAGER CAN SEE
+       ===================================================== -->
 
   <section class="list-card">
+
     <div class="section-heading">
+
       <h2>Employee List</h2>
 
       <p>
         Total employees:
         {{ employees().length }}
       </p>
+
     </div>
 
+
     @if (loading()) {
+
       <div class="empty-message">
         Loading employees...
       </div>
-    } @else if (employees().length === 0) {
+
+    } @else if (
+      employees().length === 0
+    ) {
+
       <div class="empty-message">
         No employee records found.
       </div>
+
     } @else {
+
       <div class="table-container">
+
         <table>
+
           <thead>
+
             <tr>
+
               <th>Code</th>
+
               <th>Employee Name</th>
+
               <th>Email</th>
+
               <th>Department</th>
+
               <th>Designation</th>
+
+              <th>Manager</th>
+
               <th>Status</th>
-              <th class="actions-column">
-                Actions
-              </th>
+
+
+              <!-- Administrator only -->
+
+              @if (isAdministrator) {
+
+                <th class="actions-column">
+                  Actions
+                </th>
+
+              }
+
             </tr>
+
           </thead>
 
+
           <tbody>
+
             @for (
               employee of employees();
               track employee.id
             ) {
+
               <tr>
-                <td>
-                  {{ employee.employeeCode }}
-                </td>
+
+                <!-- Employee Code -->
 
                 <td>
-                  {{ employee.fullName }}
+                  {{
+                    employee.employeeCode
+                  }}
                 </td>
 
-                <td>
-                  {{ employee.email }}
-                </td>
+
+                <!-- Employee Name -->
 
                 <td>
-                  {{ employee.department }}
+                  {{
+                    employee.fullName
+                  }}
                 </td>
 
-                <td>
-                  {{ employee.designation }}
-                </td>
+
+                <!-- Email -->
 
                 <td>
+                  {{
+                    employee.email
+                  }}
+                </td>
+
+
+                <!-- Department -->
+
+                <td>
+                  {{
+                    employee.department
+                  }}
+                </td>
+
+
+                <!-- Designation -->
+
+                <td>
+                  {{
+                    employee.designation
+                  }}
+                </td>
+
+
+                <!-- Manager -->
+
+                <td>
+
+                  @if (
+                    employee.managerId &&
+                    employee.managerName
+                  ) {
+
+                    {{
+                      employee.managerEmployeeCode
+                    }}
+                    -
+                    {{
+                      employee.managerName
+                    }}
+
+                  } @else {
+
+                    -
+
+                  }
+
+                </td>
+
+
+                <!-- Status -->
+
+                <td>
+
                   <span
                     class="status"
-                    [class.active]="employee.isActive"
-                    [class.inactive]="!employee.isActive">
+                    [class.active]="
+                      employee.isActive
+                    "
+                    [class.inactive]="
+                      !employee.isActive
+                    ">
 
-                    {{ employee.isActive
-                      ? 'Active'
-                      : 'Inactive' }}
+                    {{
+                      employee.isActive
+                        ? 'Active'
+                        : 'Inactive'
+                    }}
+
                   </span>
+
                 </td>
 
-                <td class="actions">
-                  <button
-                    class="edit-button"
-                    type="button"
-                    (click)="editEmployee(employee)">
-                    Edit
-                  </button>
 
-                  <button
-                    class="delete-button"
-                    type="button"
-                    (click)="deleteEmployee(employee)">
-                    Delete
-                  </button>
-                </td>
+                <!-- ===========================================
+                     ADMINISTRATOR ONLY ACTIONS
+                     =========================================== -->
+
+                @if (isAdministrator) {
+
+                  <td class="actions">
+
+                    <button
+                      class="edit-button"
+                      type="button"
+                      (click)="
+                        editEmployee(employee)
+                      ">
+
+                      Edit
+
+                    </button>
+
+
+                    <button
+                      class="delete-button"
+                      type="button"
+                      (click)="
+                        deleteEmployee(employee)
+                      ">
+
+                      Delete
+
+                    </button>
+
+                  </td>
+
+                }
+
               </tr>
+
             }
+
           </tbody>
+
         </table>
+
       </div>
+
     }
+
   </section>
+
 </main>

@@ -8,11 +8,8 @@ namespace EmployeeTracker.Api.Controllers;
 
 [ApiController]
 [Route("api/employee-managers")]
-[Authorize(
-    Roles = "Administrator,Manager"
-)]
-public class EmployeeManagersController :
-    ControllerBase
+[Authorize(Roles = "Administrator,Manager")]
+public class EmployeeManagersController : ControllerBase
 {
     private readonly AppDbContext _database;
 
@@ -24,10 +21,18 @@ public class EmployeeManagersController :
     }
 
     /*
-     * Returns employees together with their
-     * currently assigned manager.
+     * Administrator and Manager can view
+     * the employee reporting structure.
+     *
+     * Administrator:
+     * - Can view all employees.
+     * - Can assign/remove managers.
+     *
+     * Manager:
+     * - Can view reporting structure only.
      */
     [HttpGet]
+    [Authorize(Roles = "Administrator,Manager")]
     public async Task<ActionResult> GetEmployees()
     {
         var employees =
@@ -58,10 +63,15 @@ public class EmployeeManagersController :
     }
 
     /*
-     * Returns active employees who can be
-     * selected as managers.
+     * Only Administrator needs the list
+     * of employees that can be selected
+     * as managers.
+     *
+     * Manager UI is read-only, so Managers
+     * should not access this endpoint.
      */
     [HttpGet("available-managers")]
+    [Authorize(Roles = "Administrator")]
     public async Task<ActionResult>
         GetAvailableManagers()
     {
@@ -85,12 +95,15 @@ public class EmployeeManagersController :
     }
 
     /*
-     * Assigns or removes a manager.
+     * Only Administrator can assign,
+     * change, or remove an employee's
+     * reporting manager.
      *
      * Sending ManagerId as null removes
      * the current manager assignment.
      */
     [HttpPut("{employeeId:int}")]
+    [Authorize(Roles = "Administrator")]
     public async Task<ActionResult> AssignManager(
         int employeeId,
         EmployeeManagerRequest request
@@ -111,7 +124,8 @@ public class EmployeeManagersController :
         }
 
         /*
-         * A null value removes the manager.
+         * A null value removes the
+         * current manager.
          */
         if (!request.ManagerId.HasValue)
         {
@@ -129,6 +143,10 @@ public class EmployeeManagersController :
         var managerId =
             request.ManagerId.Value;
 
+        /*
+         * An employee cannot report
+         * to themselves.
+         */
         if (managerId == employeeId)
         {
             return BadRequest(new
@@ -138,6 +156,9 @@ public class EmployeeManagersController :
             });
         }
 
+        /*
+         * Selected manager must exist.
+         */
         var manager =
             await _database.Employees
                 .AsNoTracking()
@@ -153,6 +174,10 @@ public class EmployeeManagersController :
             });
         }
 
+        /*
+         * Inactive employees cannot
+         * become reporting managers.
+         */
         if (!manager.IsActive)
         {
             return BadRequest(new
@@ -163,10 +188,15 @@ public class EmployeeManagersController :
         }
 
         /*
-         * Prevent circular reporting structures.
+         * Prevent circular reporting
+         * relationships.
          *
-         * Example prevented:
-         * A reports to B and B reports to A.
+         * Example:
+         *
+         * EMP001 -> EMP002
+         * EMP002 -> EMP001
+         *
+         * This must not be allowed.
          */
         var createsCircularRelationship =
             await CreatesCircularRelationship(
@@ -193,6 +223,7 @@ public class EmployeeManagersController :
                 "Manager assigned successfully.",
 
             employee.Id,
+
             employee.ManagerId,
 
             ManagerName =
@@ -200,6 +231,10 @@ public class EmployeeManagersController :
         });
     }
 
+    /*
+     * Checks the manager hierarchy before
+     * saving an assignment.
+     */
     private async Task<bool>
         CreatesCircularRelationship(
             int employeeId,
@@ -214,15 +249,28 @@ public class EmployeeManagersController :
 
         while (currentEmployeeId.HasValue)
         {
-            if (currentEmployeeId.Value ==
-                employeeId)
+            /*
+             * We reached the employee being
+             * modified, which means this new
+             * assignment creates a cycle.
+             */
+            if (
+                currentEmployeeId.Value ==
+                employeeId
+            )
             {
                 return true;
             }
 
-            if (!visitedEmployeeIds.Add(
+            /*
+             * Protect against an existing
+             * invalid/circular hierarchy.
+             */
+            if (
+                !visitedEmployeeIds.Add(
                     currentEmployeeId.Value
-                ))
+                )
+            )
             {
                 return true;
             }

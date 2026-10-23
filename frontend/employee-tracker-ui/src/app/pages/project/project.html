@@ -1,8 +1,9 @@
+
 <main class="page-container">
   <header class="page-header">
     <div>
       <h1>Project Management</h1>
-      <p>Manage projects and client information</p>
+      <p>Manage projects, clients and project documents</p>
     </div>
 
     <button
@@ -17,11 +18,8 @@
   <section class="form-card">
     <div class="section-heading">
       <h2>
-        {{ editingId() === null
-          ? 'Add Project'
-          : 'Edit Project' }}
+        {{ editingId() === null ? 'Add Project' : 'Edit Project' }}
       </h2>
-
       <p>Enter the project information below.</p>
     </div>
 
@@ -43,10 +41,7 @@
 
       <div class="form-grid">
         <div class="form-field">
-          <label for="projectCode">
-            Project Code
-          </label>
-
+          <label for="projectCode">Project Code</label>
           <input
             id="projectCode"
             type="text"
@@ -62,10 +57,7 @@
         </div>
 
         <div class="form-field">
-          <label for="projectName">
-            Project Name
-          </label>
-
+          <label for="projectName">Project Name</label>
           <input
             id="projectName"
             type="text"
@@ -81,10 +73,7 @@
         </div>
 
         <div class="form-field">
-          <label for="clientName">
-            Client Name
-          </label>
-
+          <label for="clientName">Client Name</label>
           <input
             id="clientName"
             type="text"
@@ -100,18 +89,9 @@
         </div>
 
         <div class="form-field">
-          <label for="status">
-            Project Status
-          </label>
-
-          <select
-            id="status"
-            formControlName="status">
-
-            @for (
-              status of projectStatuses;
-              track status
-            ) {
+          <label for="status">Project Status</label>
+          <select id="status" formControlName="status">
+            @for (status of projectStatuses; track status) {
               <option [value]="status">
                 {{ status }}
               </option>
@@ -126,10 +106,7 @@
         </div>
 
         <div class="form-field">
-          <label for="startDate">
-            Start Date
-          </label>
-
+          <label for="startDate">Start Date</label>
           <input
             id="startDate"
             type="date"
@@ -143,10 +120,7 @@
         </div>
 
         <div class="form-field">
-          <label for="deadline">
-            Deadline
-          </label>
-
+          <label for="deadline">Deadline</label>
           <input
             id="deadline"
             type="date"
@@ -154,17 +128,13 @@
         </div>
 
         <div class="form-field full-width">
-          <label for="description">
-            Description
-          </label>
-
+          <label for="description">Description</label>
           <textarea
             id="description"
             formControlName="description"
             placeholder="Enter project description"
             maxlength="500"
-            rows="4">
-          </textarea>
+            rows="4"></textarea>
 
           @if (isInvalid('description')) {
             <small class="validation-error">
@@ -179,9 +149,7 @@
             type="checkbox"
             formControlName="isActive">
 
-          <label for="isActive">
-            Active Project
-          </label>
+          <label for="isActive">Active Project</label>
         </div>
       </div>
 
@@ -190,7 +158,6 @@
           class="primary-button"
           type="submit"
           [disabled]="saving()">
-
           @if (saving()) {
             Saving...
           } @else if (editingId() === null) {
@@ -214,11 +181,7 @@
   <section class="list-card">
     <div class="section-heading">
       <h2>Project List</h2>
-
-      <p>
-        Total projects:
-        {{ projects().length }}
-      </p>
+      <p>Total projects: {{ projects().length }}</p>
     </div>
 
     @if (loading()) {
@@ -246,27 +209,14 @@
           </thead>
 
           <tbody>
-            @for (
-              project of projects();
-              track project.id
-            ) {
+            @for (project of projects(); track project.id) {
               <tr>
-                <td>
-                  {{ project.projectCode }}
-                </td>
-
-                <td>
-                  {{ project.projectName }}
-                </td>
-
-                <td>
-                  {{ project.clientName }}
-                </td>
-
+                <td>{{ project.projectCode }}</td>
+                <td>{{ project.projectName }}</td>
+                <td>{{ project.clientName }}</td>
                 <td>
                   {{ project.startDate.substring(0, 10) }}
                 </td>
-
                 <td>
                   {{
                     project.deadline
@@ -274,47 +224,38 @@
                       : '-'
                   }}
                 </td>
-
                 <td>
                   <span
                     class="project-status"
-                    [class.not-started]="
-                      project.status === 'Not Started'
-                    "
-                    [class.in-progress]="
-                      project.status === 'In Progress'
-                    "
-                    [class.on-hold]="
-                      project.status === 'On Hold'
-                    "
-                    [class.completed]="
-                      project.status === 'Completed'
-                    "
-                    [class.cancelled]="
-                      project.status === 'Cancelled'
-                    ">
+                    [class.not-started]="project.status === 'Not Started'"
+                    [class.in-progress]="project.status === 'In Progress'"
+                    [class.on-hold]="project.status === 'On Hold'"
+                    [class.completed]="project.status === 'Completed'"
+                    [class.cancelled]="project.status === 'Cancelled'">
                     {{ project.status }}
                   </span>
                 </td>
-
                 <td>
                   <span
                     class="active-status"
                     [class.active]="project.isActive"
                     [class.inactive]="!project.isActive">
-
-                    {{ project.isActive
-                      ? 'Active'
-                      : 'Inactive' }}
+                    {{ project.isActive ? 'Active' : 'Inactive' }}
                   </span>
                 </td>
-
                 <td class="actions">
                   <button
                     class="edit-button"
                     type="button"
                     (click)="editProject(project)">
                     Edit
+                  </button>
+
+                  <button
+                    class="edit-button"
+                    type="button"
+                    (click)="openProjectFiles(project)">
+                    Files
                   </button>
 
                   <button
@@ -331,4 +272,185 @@
       </div>
     }
   </section>
+
+  @if (selectedProject(); as project) {
+    <section class="list-card project-files-panel">
+      <div class="section-heading">
+        <h2>Project Files — {{ project.projectName }}</h2>
+        <p>Project Code: {{ project.projectCode }}</p>
+
+        <button
+          class="secondary-button"
+          type="button"
+          (click)="closeProjectFiles()">
+          Close Files
+        </button>
+      </div>
+
+      @if (fileSuccessMessage()) {
+        <div class="message success">
+          {{ fileSuccessMessage() }}
+        </div>
+      }
+
+      @if (fileErrorMessage()) {
+        <div class="message error">
+          {{ fileErrorMessage() }}
+        </div>
+      }
+
+      <div class="file-upload-section">
+        <h3>Upload New File</h3>
+
+        <p>
+          Supported: PDF, TXT, PNG, JPG and JPEG.
+          Maximum size: 10 MB.
+        </p>
+
+        <div class="file-upload-controls">
+          <input
+            #fileInput
+            type="file"
+            accept=".pdf,.txt,.png,.jpg,.jpeg"
+            (change)="onFileSelected($event)"
+            [disabled]="uploading()">
+
+          <button
+            class="primary-button"
+            type="button"
+            (click)="uploadProjectFile(); fileInput.value = ''"
+            [disabled]="!selectedFile() || uploading()">
+            {{ uploading() ? 'Uploading...' : 'Upload File' }}
+          </button>
+        </div>
+
+        @if (selectedFile(); as file) {
+          <p class="selected-file-name">
+            Selected: {{ file.name }}
+            ({{ formatFileSize(file.size) }})
+          </p>
+        }
+      </div>
+
+      <div class="files-list-heading">
+        <h3>Uploaded Documents</h3>
+
+        <button
+          class="refresh-button"
+          type="button"
+          (click)="loadProjectFiles(project.id)"
+          [disabled]="filesLoading()">
+          Refresh Files
+        </button>
+      </div>
+
+      @if (filesLoading()) {
+        <div class="empty-message">
+          Loading project files...
+        </div>
+      } @else if (projectFiles().length === 0) {
+        <div class="empty-message">
+          No files uploaded for this project.
+        </div>
+      } @else {
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>File Name</th>
+                <th>Size</th>
+                <th>Uploaded At</th>
+                <th class="actions-column">Actions</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (file of projectFiles(); track file.id) {
+                <tr>
+                  <td>{{ file.originalFileName }}</td>
+                  <td>{{ formatFileSize(file.fileSize) }}</td>
+                  <td>
+                    {{ file.uploadedAt.substring(0, 10) }}
+                  </td>
+                  <td class="actions">
+                    <button
+                      class="edit-button"
+                      type="button"
+                      (click)="previewProjectFile(file)"
+                      [disabled]="previewLoading()">
+                      Preview
+                    </button>
+
+                    <button
+                      class="edit-button"
+                      type="button"
+                      (click)="downloadProjectFile(file)"
+                      [disabled]="downloadingFileId() === file.id">
+                      {{
+                        downloadingFileId() === file.id
+                          ? 'Downloading...'
+                          : 'Download'
+                      }}
+                    </button>
+
+                    <button
+                      class="delete-button"
+                      type="button"
+                      (click)="deleteProjectFile(file)"
+                      [disabled]="deletingFileId() === file.id">
+                      {{
+                        deletingFileId() === file.id
+                          ? 'Deleting...'
+                          : 'Delete File'
+                      }}
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      @if (previewLoading()) {
+        <div class="preview-loading">
+          Loading file preview...
+        </div>
+      }
+
+      @if (previewFileType()) {
+        <div class="file-preview-panel">
+          <div class="file-preview-header">
+            <h3>Preview: {{ previewFileName() }}</h3>
+
+            <button
+              class="secondary-button"
+              type="button"
+              (click)="closeFilePreview()">
+              Close Preview
+            </button>
+          </div>
+
+          @if (previewFileType().startsWith('image/')) {
+            @if (previewFileUrl(); as imageUrl) {
+              <img
+                class="file-preview-image"
+                [src]="imageUrl"
+                [alt]="previewFileName()">
+            }
+          } @else if (previewFileType() === 'application/pdf') {
+            @if (previewPdfUrl(); as pdfUrl) {
+              <iframe
+                class="file-preview-frame"
+                [src]="pdfUrl"
+                title="Project PDF Preview">
+              </iframe>
+            }
+          } @else if (previewFileType() === 'text/plain') {
+            <pre class="file-preview-text">{{ previewText() }}</pre>
+          }
+        </div>
+      }
+    </section>
+  }
 </main>

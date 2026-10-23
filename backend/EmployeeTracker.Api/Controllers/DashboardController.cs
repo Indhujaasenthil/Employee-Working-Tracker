@@ -9,16 +9,12 @@ namespace EmployeeTracker.Api.Controllers;
 
 [ApiController]
 [Route("api/dashboard")]
-[Authorize(
-    Roles = "Administrator,Manager,Employee"
-)]
+[Authorize(Roles = "Administrator,Manager,Employee")]
 public class DashboardController : ControllerBase
 {
     private readonly AppDbContext _database;
 
-    public DashboardController(
-        AppDbContext database
-    )
+    public DashboardController(AppDbContext database)
     {
         _database = database;
     }
@@ -26,21 +22,23 @@ public class DashboardController : ControllerBase
     [HttpGet]
     public async Task<ActionResult> GetDashboard()
     {
+        var role = GetCurrentRole();
+
         IQueryable<Employee> employeeQuery =
-            _database.Employees
-                .AsNoTracking();
+            _database.Employees.AsNoTracking();
 
         IQueryable<Project> projectQuery =
-            _database.Projects
-                .AsNoTracking();
+            _database.Projects.AsNoTracking();
 
         IQueryable<WorkTask> taskQuery =
-            _database.WorkTasks
-                .AsNoTracking();
+            _database.WorkTasks.AsNoTracking();
 
         IQueryable<DailyWorkLog> workLogQuery =
-            _database.DailyWorkLogs
-                .AsNoTracking();
+            _database.DailyWorkLogs.AsNoTracking();
+
+        // ============================================
+        // EMPLOYEE DASHBOARD
+        // ============================================
 
         if (User.IsInRole("Employee"))
         {
@@ -64,8 +62,7 @@ public class DashboardController : ControllerBase
                 projectQuery.Where(project =>
                     _database.ProjectMembers.Any(member =>
                         member.ProjectId == project.Id &&
-                        member.EmployeeId ==
-                            employeeId.Value &&
+                        member.EmployeeId == employeeId.Value &&
                         member.IsActive
                     )
                 );
@@ -73,15 +70,82 @@ public class DashboardController : ControllerBase
             taskQuery =
                 taskQuery.Where(workTask =>
                     workTask.AssignedEmployeeId ==
-                        employeeId.Value
+                    employeeId.Value
                 );
 
             workLogQuery =
                 workLogQuery.Where(workLog =>
                     workLog.EmployeeId ==
-                        employeeId.Value
+                    employeeId.Value
                 );
         }
+
+        // ============================================
+        // MANAGER DASHBOARD
+        // ============================================
+
+        else if (User.IsInRole("Manager"))
+        {
+            var managerEmployeeId = GetEmployeeId();
+
+            if (!managerEmployeeId.HasValue)
+            {
+                return Unauthorized(new
+                {
+                    message =
+                        "Your manager login is not linked to an employee."
+                });
+            }
+
+            var managerId =
+                managerEmployeeId.Value;
+
+            // Employees directly reporting to manager.
+            employeeQuery =
+                employeeQuery.Where(employee =>
+                    employee.ManagerId == managerId
+                );
+
+            // Projects where at least one direct report
+            // is an active project member.
+            projectQuery =
+                projectQuery.Where(project =>
+                    _database.ProjectMembers.Any(member =>
+                        member.ProjectId == project.Id &&
+                        member.IsActive &&
+                        _database.Employees.Any(employee =>
+                            employee.Id == member.EmployeeId &&
+                            employee.ManagerId == managerId
+                        )
+                    )
+                );
+
+            // Tasks assigned to direct reports.
+            taskQuery =
+                taskQuery.Where(workTask =>
+                    workTask.AssignedEmployeeId.HasValue &&
+                    _database.Employees.Any(employee =>
+                        employee.Id ==
+                            workTask.AssignedEmployeeId.Value &&
+                        employee.ManagerId == managerId
+                    )
+                );
+
+            // Work logs belonging to direct reports.
+            workLogQuery =
+                workLogQuery.Where(workLog =>
+                    _database.Employees.Any(employee =>
+                        employee.Id == workLog.EmployeeId &&
+                        employee.ManagerId == managerId
+                    )
+                );
+        }
+
+        // Administrator receives all records.
+
+        // ============================================
+        // EMPLOYEE COUNTS
+        // ============================================
 
         var totalEmployees =
             await employeeQuery.CountAsync();
@@ -91,6 +155,10 @@ public class DashboardController : ControllerBase
                 employee.IsActive
             );
 
+        // ============================================
+        // PROJECT COUNTS
+        // ============================================
+
         var totalProjects =
             await projectQuery.CountAsync();
 
@@ -98,6 +166,10 @@ public class DashboardController : ControllerBase
             await projectQuery.CountAsync(project =>
                 project.IsActive
             );
+
+        // ============================================
+        // TASK COUNTS
+        // ============================================
 
         var totalTasks =
             await taskQuery.CountAsync();
@@ -113,13 +185,17 @@ public class DashboardController : ControllerBase
                 workTask.Status == "Completed"
             );
 
+        // ============================================
+        // WORK LOG COUNTS
+        // ============================================
+
+        var totalWorkLogs =
+            await workLogQuery.CountAsync();
+
         var totalHours =
             await workLogQuery.SumAsync(workLog =>
                 (decimal?)workLog.HoursWorked
             ) ?? 0;
-
-        var totalWorkLogs =
-            await workLogQuery.CountAsync();
 
         var draftWorkLogs =
             await workLogQuery.CountAsync(workLog =>
@@ -141,6 +217,10 @@ public class DashboardController : ControllerBase
                 workLog.Status == "Rejected"
             );
 
+        // ============================================
+        // RECENT WORK LOGS
+        // ============================================
+
         var recentWorkLogs =
             await workLogQuery
                 .OrderByDescending(workLog =>
@@ -160,16 +240,24 @@ public class DashboardController : ControllerBase
                     workLog.WorkDescription,
 
                     EmployeeCode =
-                        workLog.Employee.EmployeeCode,
+                        workLog.Employee != null
+                            ? workLog.Employee.EmployeeCode
+                            : string.Empty,
 
                     EmployeeName =
-                        workLog.Employee.FullName,
+                        workLog.Employee != null
+                            ? workLog.Employee.FullName
+                            : string.Empty,
 
                     ProjectCode =
-                        workLog.Project.ProjectCode,
+                        workLog.Project != null
+                            ? workLog.Project.ProjectCode
+                            : string.Empty,
 
                     ProjectName =
-                        workLog.Project.ProjectName,
+                        workLog.Project != null
+                            ? workLog.Project.ProjectName
+                            : string.Empty,
 
                     TaskCode =
                         workLog.WorkTask == null
@@ -185,6 +273,8 @@ public class DashboardController : ControllerBase
 
         return Ok(new
         {
+            role,
+
             totalEmployees,
             activeEmployees,
 
@@ -223,5 +313,25 @@ public class DashboardController : ControllerBase
         }
 
         return null;
+    }
+
+    private string GetCurrentRole()
+    {
+        if (User.IsInRole("Administrator"))
+        {
+            return "Administrator";
+        }
+
+        if (User.IsInRole("Manager"))
+        {
+            return "Manager";
+        }
+
+        if (User.IsInRole("Employee"))
+        {
+            return "Employee";
+        }
+
+        return string.Empty;
     }
 }

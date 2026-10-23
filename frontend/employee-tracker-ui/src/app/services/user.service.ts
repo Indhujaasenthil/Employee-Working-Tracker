@@ -1,3 +1,4 @@
+
 import {
   inject,
   Injectable
@@ -16,6 +17,10 @@ import {
   UserRequest
 } from '../models/user';
 
+import {
+  environment
+} from '../../environments/environment';
+
 @Injectable({
   providedIn: 'root'
 })
@@ -24,7 +29,7 @@ export class UserService {
     inject(HttpClient);
 
   private readonly apiUrl =
-    'http://localhost:5027/api/users';
+    `${environment.apiUrl}/users`;
 
   getUsers(): Observable<AppUser[]> {
     return this.http.get<AppUser[]>(

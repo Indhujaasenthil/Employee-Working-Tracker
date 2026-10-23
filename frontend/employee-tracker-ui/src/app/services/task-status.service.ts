@@ -1,3 +1,4 @@
+
 import {
   inject,
   Injectable
@@ -17,6 +18,10 @@ import {
   TaskStatusResponse
 } from '../models/task-status';
 
+import {
+  environment
+} from '../../environments/environment';
+
 @Injectable({
   providedIn: 'root'
 })
@@ -25,12 +30,13 @@ export class TaskStatusService {
     inject(HttpClient);
 
   private readonly apiUrl =
-    'http://localhost:5027/api/tasks';
+    `${environment.apiUrl}/tasks`;
 
   updateStatus(
     taskId: number,
     status: TaskStatus
   ): Observable<TaskStatusResponse> {
+
     const request: TaskStatusRequest = {
       status
     };

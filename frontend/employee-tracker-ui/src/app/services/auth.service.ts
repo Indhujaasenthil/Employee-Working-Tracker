@@ -1,3 +1,4 @@
+
 import {
   Injectable,
   inject,
@@ -21,6 +22,8 @@ import {
   ChangePasswordRequest,
   ChangePasswordResponse
 } from '../models/change-password';
+import { environment } from '../../environments/environment';
+
 
 export interface LoginRequest {
   userName: string;
@@ -38,11 +41,21 @@ export interface LoginResponse {
   providedIn: 'root'
 })
 export class AuthService {
+
   private readonly http = inject(HttpClient);
+
   private readonly router = inject(Router);
 
+  // =====================================
+  // API URL FROM ENVIRONMENT
+  // =====================================
+
   private readonly apiUrl =
-    'http://localhost:5027/api/auth';
+    `${environment.apiUrl}/auth`;
+
+  // =====================================
+  // LOCAL STORAGE KEYS
+  // =====================================
 
   private readonly tokenKey =
     'employee_tracker_token';
@@ -56,18 +69,35 @@ export class AuthService {
   private readonly expiryKey =
     'employee_tracker_token_expiry';
 
+  // =====================================
+  // AUTHENTICATION SIGNALS
+  // =====================================
+
   readonly authenticated =
     signal(this.hasValidToken());
 
   readonly currentUserName =
-    signal(this.readStorage(this.userNameKey));
+    signal<string | null>(
+      this.hasValidToken()
+        ? this.readStorage(this.userNameKey)
+        : null
+    );
 
   readonly currentUserRole =
-    signal(this.readStorage(this.roleKey));
+    signal<string | null>(
+      this.hasValidToken()
+        ? this.readStorage(this.roleKey)
+        : null
+    );
+
+  // =====================================
+  // LOGIN
+  // =====================================
 
   login(
     request: LoginRequest
   ): Observable<LoginResponse> {
+
     return this.http
       .post<LoginResponse>(
         `${this.apiUrl}/login`,
@@ -80,9 +110,14 @@ export class AuthService {
       );
   }
 
+  // =====================================
+  // CHANGE PASSWORD
+  // =====================================
+
   changePassword(
     request: ChangePasswordRequest
   ): Observable<ChangePasswordResponse> {
+
     return this.http
       .post<ChangePasswordResponse>(
         `${this.apiUrl}/change-password`,
@@ -90,13 +125,23 @@ export class AuthService {
       );
   }
 
+  // =====================================
+  // LOGOUT
+  // =====================================
+
   logout(): void {
+
     this.clearAuthentication();
 
     void this.router.navigate(['/login']);
   }
 
+  // =====================================
+  // AUTHENTICATION CHECK
+  // =====================================
+
   isAuthenticated(): boolean {
+
     const valid = this.hasValidToken();
 
     if (!valid) {
@@ -106,35 +151,65 @@ export class AuthService {
     return valid;
   }
 
+  // =====================================
+  // GET JWT TOKEN
+  // =====================================
+
   getToken(): string | null {
-    if (!this.hasValidToken()) {
-      this.clearAuthentication();
+
+    if (!this.isAuthenticated()) {
       return null;
     }
 
     return this.readStorage(this.tokenKey);
   }
 
+  // =====================================
+  // GET CURRENT USERNAME
+  // =====================================
+
   getUserName(): string | null {
-    return this.readStorage(
-      this.userNameKey
-    );
+
+    if (!this.isAuthenticated()) {
+      return null;
+    }
+
+    return this.readStorage(this.userNameKey);
   }
 
+  // =====================================
+  // GET CURRENT ROLE
+  // =====================================
+
   getRole(): string | null {
+
+    if (!this.isAuthenticated()) {
+      return null;
+    }
+
     return this.readStorage(this.roleKey);
   }
 
+  // =====================================
+  // ROLE CHECK
+  // =====================================
+
   hasRole(role: string): boolean {
+
     return (
       this.getRole()?.toLowerCase() ===
       role.toLowerCase()
     );
   }
 
+  // =====================================
+  // SAVE AUTHENTICATION
+  // =====================================
+
   private saveAuthentication(
     response: LoginResponse
   ): void {
+
     if (typeof localStorage === 'undefined') {
       return;
     }
@@ -159,7 +234,9 @@ export class AuthService {
       response.expiresAt
     );
 
-    this.authenticated.set(true);
+    this.authenticated.set(
+      this.hasValidToken()
+    );
 
     this.currentUserName.set(
       response.userName
@@ -170,8 +247,14 @@ export class AuthService {
     );
   }
 
+  // =====================================
+  // CLEAR AUTHENTICATION
+  // =====================================
+
   private clearAuthentication(): void {
+
     if (typeof localStorage !== 'undefined') {
+
       localStorage.removeItem(
         this.tokenKey
       );
@@ -190,11 +273,18 @@ export class AuthService {
     }
 
     this.authenticated.set(false);
+
     this.currentUserName.set(null);
+
     this.currentUserRole.set(null);
   }
 
+  // =====================================
+  // VALIDATE JWT EXPIRATION
+  // =====================================
+
   private hasValidToken(): boolean {
+
     const token =
       this.readStorage(this.tokenKey);
 
@@ -208,16 +298,21 @@ export class AuthService {
     const expiryTime =
       new Date(expiry).getTime();
 
-    if (Number.isNaN(expiryTime)) {
+    if (!Number.isFinite(expiryTime)) {
       return false;
     }
 
     return expiryTime > Date.now();
   }
 
+  // =====================================
+  // READ LOCAL STORAGE
+  // =====================================
+
   private readStorage(
     key: string
   ): string | null {
+
     if (typeof localStorage === 'undefined') {
       return null;
     }

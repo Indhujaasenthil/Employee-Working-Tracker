@@ -1,3 +1,4 @@
+
 import {
   Component,
   inject,
@@ -26,6 +27,10 @@ import {
   UserService
 } from '../../services/user.service';
 
+import {
+  environment
+} from '../../../environments/environment';
+
 interface EmployeeOption {
   id: number;
   employeeCode: string;
@@ -43,6 +48,7 @@ interface EmployeeOption {
   styleUrl: './user.scss'
 })
 export class UserComponent implements OnInit {
+
   private readonly userService =
     inject(UserService);
 
@@ -52,10 +58,11 @@ export class UserComponent implements OnInit {
   private readonly formBuilder =
     inject(FormBuilder);
 
-  private readonly employeeApiUrl =
-    'http://localhost:5027/api/employees';
+  private readonly employeesUrl =
+    `${environment.apiUrl}/employees`;
 
   readonly users = signal<AppUser[]>([]);
+
   readonly employees =
     signal<EmployeeOption[]>([]);
 
@@ -123,34 +130,36 @@ export class UserComponent implements OnInit {
     this.loading.set(true);
     this.errorMessage.set('');
 
-    this.userService.getUsers().subscribe({
-      next: users => {
-        this.users.set(users);
-        this.loading.set(false);
-      },
+    this.userService
+      .getUsers()
+      .subscribe({
+        next: users => {
+          this.users.set(users);
+          this.loading.set(false);
+        },
 
-      error: (error: HttpErrorResponse) => {
-        console.error(
-          'User loading error:',
-          error
-        );
+        error: (error: HttpErrorResponse) => {
+          console.error(
+            'User loading error:',
+            error
+          );
 
-        this.users.set([]);
+          this.users.set([]);
 
-        this.errorMessage.set(
-          error.error?.message ??
-            'Unable to load users.'
-        );
+          this.errorMessage.set(
+            error.error?.message ??
+              'Unable to load users.'
+          );
 
-        this.loading.set(false);
-      }
-    });
+          this.loading.set(false);
+        }
+      });
   }
 
   loadEmployees(): void {
     this.http
       .get<EmployeeOption[]>(
-        this.employeeApiUrl
+        this.employeesUrl
       )
       .subscribe({
         next: employees => {
@@ -201,6 +210,10 @@ export class UserComponent implements OnInit {
       this.userForm.controls
         .password.value?.trim() ?? '';
 
+    const requiresEmployeeLink =
+      role === 'Manager' ||
+      role === 'Employee';
+
     const request: UserRequest = {
       userName:
         this.userForm.controls
@@ -214,7 +227,7 @@ export class UserComponent implements OnInit {
       role,
 
       employeeId:
-        role === 'Employee'
+        requiresEmployeeLink
           ? this.userForm.controls
               .employeeId.value
           : null
@@ -258,9 +271,10 @@ export class UserComponent implements OnInit {
   }
 
   deleteUser(user: AppUser): void {
-    const confirmed = window.confirm(
-      `Delete user "${user.userName}"?`
-    );
+    const confirmed =
+      window.confirm(
+        `Delete user "${user.userName}"?`
+      );
 
     if (!confirmed) {
       return;
@@ -277,7 +291,9 @@ export class UserComponent implements OnInit {
             'User deleted successfully.'
           );
 
-          if (this.editingId() === user.id) {
+          if (
+            this.editingId() === user.id
+          ) {
             this.resetForm();
           }
 
@@ -325,10 +341,27 @@ export class UserComponent implements OnInit {
       | 'employeeId'
   ): boolean {
     const control =
-      this.userForm.controls[controlName];
+      this.userForm.controls[
+        controlName
+      ];
 
-    return control.invalid &&
-      (control.touched || control.dirty);
+    return (
+      control.invalid &&
+      (
+        control.touched ||
+        control.dirty
+      )
+    );
+  }
+
+  requiresEmployeeLink(): boolean {
+    const role =
+      this.userForm.controls.role.value;
+
+    return (
+      role === 'Manager' ||
+      role === 'Employee'
+    );
   }
 
   private createUser(
@@ -343,11 +376,14 @@ export class UserComponent implements OnInit {
           );
 
           this.saving.set(false);
+
           this.resetForm();
           this.loadUsers();
         },
 
-        error: (error: HttpErrorResponse) => {
+        error: (
+          error: HttpErrorResponse
+        ) => {
           this.handleSaveError(error);
         }
       });
@@ -366,11 +402,14 @@ export class UserComponent implements OnInit {
           );
 
           this.saving.set(false);
+
           this.resetForm();
           this.loadUsers();
         },
 
-        error: (error: HttpErrorResponse) => {
+        error: (
+          error: HttpErrorResponse
+        ) => {
           this.handleSaveError(error);
         }
       });
@@ -383,7 +422,10 @@ export class UserComponent implements OnInit {
     const employeeControl =
       this.userForm.controls.employeeId;
 
-    if (role === 'Employee') {
+    if (
+      role === 'Manager' ||
+      role === 'Employee'
+    ) {
       employeeControl.setValidators([
         Validators.required
       ]);

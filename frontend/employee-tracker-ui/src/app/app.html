@@ -1,127 +1,114 @@
+
 @if (authService.authenticated()) {
   <header class="application-header">
-    <a
-      class="brand"
-      routerLink="/dashboard">
-
-      <span class="brand-icon">
-        EW
-      </span>
+    <a class="brand" routerLink="/dashboard">
+      <span class="brand-icon">EW</span>
 
       <span class="brand-text">
-        <strong>
-          Employee Working Tracker
-        </strong>
-
+        <strong>Employee Working Tracker</strong>
         <small>
           {{ authService.currentUserName() }}
-          ·
-          {{ authService.currentUserRole() }}
+          · {{ authService.currentUserRole() }}
         </small>
       </span>
     </a>
 
-    <nav class="navigation">
-      <a
-        routerLink="/dashboard"
-        routerLinkActive="active">
+    <nav class="navigation" aria-label="Main navigation">
+      <a routerLink="/dashboard" routerLinkActive="active">
         Dashboard
       </a>
 
       @if (canManageEmployees()) {
-        <a
-          routerLink="/employees"
-          routerLinkActive="active">
-          Employees
-        </a>
+        <div class="nav-dropdown">
+          <button type="button" class="nav-trigger">
+            Employees <span>▾</span>
+          </button>
 
-        <a
-          routerLink="/employee-managers"
-          routerLinkActive="active">
-          Managers
-        </a>
+          <div class="dropdown-menu">
+            <a routerLink="/employees" routerLinkActive="active">
+              Employees
+            </a>
+            <a routerLink="/employee-managers" routerLinkActive="active">
+              Managers
+            </a>
+          </div>
+        </div>
       }
 
-      @if (canManageMasters()) {
-        <a
-          routerLink="/departments"
-          routerLinkActive="active">
-          Departments
-        </a>
+      @if (canManageMasters() || canManageProjects()) {
+        <div class="nav-dropdown">
+          <button type="button" class="nav-trigger">
+            Management <span>▾</span>
+          </button>
 
-        <a
-          routerLink="/designations"
-          routerLinkActive="active">
-          Designations
-        </a>
+          <div class="dropdown-menu">
+            @if (canManageMasters()) {
+              <a routerLink="/departments" routerLinkActive="active">
+                Departments
+              </a>
+              <a routerLink="/designations" routerLinkActive="active">
+                Designations
+              </a>
+            }
+
+            @if (canManageProjects()) {
+              <a routerLink="/projects" routerLinkActive="active">
+                Projects
+              </a>
+              <a routerLink="/project-team" routerLinkActive="active">
+                Project Team
+              </a>
+            }
+          </div>
+        </div>
       }
 
-      @if (canManageProjects()) {
-        <a
-          routerLink="/projects"
-          routerLinkActive="active">
-          Projects
-        </a>
-
-        <a
-          routerLink="/project-team"
-          routerLinkActive="active">
-          Project Team
-        </a>
-      }
-
-      <a
-        routerLink="/tasks"
-        routerLinkActive="active">
+      <a routerLink="/tasks" routerLinkActive="active">
         Tasks
       </a>
 
-      <a
-        routerLink="/work-logs"
-        routerLinkActive="active">
+      <a routerLink="/work-logs" routerLinkActive="active">
         Work Logs
       </a>
 
       @if (canApproveWorkLogs()) {
-        <a
-          routerLink="/work-log-approvals"
-          routerLinkActive="active">
+        <a routerLink="/work-log-approvals" routerLinkActive="active">
           Approvals
         </a>
       }
 
-      <a
-        routerLink="/reports"
-        routerLinkActive="active">
+      <a routerLink="/reports" routerLinkActive="active">
         Reports
       </a>
 
       @if (isAdministrator()) {
-        <a
-          routerLink="/users"
-          routerLinkActive="active">
+        <a routerLink="/users" routerLinkActive="active">
           Users
         </a>
       }
 
-      <a
-        routerLink="/profile"
-        routerLinkActive="active">
-        Profile
-      </a>
+      <div class="nav-dropdown account-dropdown">
+        <button type="button" class="nav-trigger">
+          Account <span>▾</span>
+        </button>
 
-      <a
-        routerLink="/change-password"
-        routerLinkActive="active">
-        Password
-      </a>
+        <div class="dropdown-menu">
+          <a routerLink="/profile" routerLinkActive="active">
+            Profile
+          </a>
 
-      <button
-        type="button"
-        class="logout-button"
-        (click)="logout()">
-        Logout
-      </button>
+          <a routerLink="/change-password" routerLinkActive="active">
+            Change Password
+          </a>
+
+          <button
+            type="button"
+            class="dropdown-logout"
+            (click)="logout()">
+            Logout
+          </button>
+        </div>
+      </div>
     </nav>
   </header>
 }

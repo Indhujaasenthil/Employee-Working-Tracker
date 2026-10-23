@@ -1,3 +1,4 @@
+
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
@@ -7,6 +8,10 @@ import {
   WorkTaskRequest
 } from '../models/work-task';
 
+import {
+  environment
+} from '../../environments/environment';
+
 @Injectable({
   providedIn: 'root'
 })
@@ -14,7 +19,7 @@ export class WorkTaskService {
   private readonly http = inject(HttpClient);
 
   private readonly apiUrl =
-    'http://localhost:5027/api/worktasks';
+    `${environment.apiUrl}/worktasks`;
 
   getWorkTasks(): Observable<WorkTask[]> {
     return this.http.get<WorkTask[]>(

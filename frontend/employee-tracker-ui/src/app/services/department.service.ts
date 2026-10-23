@@ -1,3 +1,4 @@
+
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
@@ -7,6 +8,10 @@ import {
   DepartmentRequest
 } from '../models/department';
 
+import {
+  environment
+} from '../../environments/environment';
+
 @Injectable({
   providedIn: 'root'
 })
@@ -14,7 +19,7 @@ export class DepartmentService {
   private readonly http = inject(HttpClient);
 
   private readonly apiUrl =
-    'http://localhost:5027/api/departments';
+    `${environment.apiUrl}/departments`;
 
   getDepartments(): Observable<Department[]> {
     return this.http.get<Department[]>(this.apiUrl);

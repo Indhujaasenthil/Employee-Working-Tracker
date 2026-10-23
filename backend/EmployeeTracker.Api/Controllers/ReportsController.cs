@@ -23,6 +23,131 @@ public class ReportsController : ControllerBase
         _database = database;
     }
 
+    /*
+     * Returns employees that the logged-in user
+     * is allowed to use in the Reports filter.
+     *
+     * Administrator:
+     *     All active employees.
+     *
+     * Manager:
+     *     Only active direct-report employees.
+     *
+     * Employee:
+     *     Only their own employee record.
+     */
+    [HttpGet("employee-options")]
+    public async Task<ActionResult>
+        GetEmployeeOptions()
+    {
+        var loggedInEmployeeId =
+            GetEmployeeId();
+
+        IQueryable<Employee> query =
+            _database.Employees
+                .AsNoTracking()
+                .Where(employee =>
+                    employee.IsActive
+                );
+
+        /*
+         * Administrator
+         */
+        if (User.IsInRole("Administrator"))
+        {
+            var employees =
+                await query
+                    .OrderBy(employee =>
+                        employee.FullName
+                    )
+                    .Select(employee => new
+                    {
+                        employee.Id,
+                        employee.EmployeeCode,
+                        employee.FullName,
+                        employee.IsActive
+                    })
+                    .ToListAsync();
+
+            return Ok(employees);
+        }
+
+        /*
+         * Manager
+         */
+        if (User.IsInRole("Manager"))
+        {
+            if (!loggedInEmployeeId.HasValue)
+            {
+                return Unauthorized(new
+                {
+                    message =
+                        "Your manager login is not linked to an employee."
+                });
+            }
+
+            var employees =
+                await query
+                    .Where(employee =>
+                        employee.ManagerId ==
+                            loggedInEmployeeId.Value
+                    )
+                    .OrderBy(employee =>
+                        employee.FullName
+                    )
+                    .Select(employee => new
+                    {
+                        employee.Id,
+                        employee.EmployeeCode,
+                        employee.FullName,
+                        employee.IsActive
+                    })
+                    .ToListAsync();
+
+            return Ok(employees);
+        }
+
+        /*
+         * Employee
+         */
+        if (User.IsInRole("Employee"))
+        {
+            if (!loggedInEmployeeId.HasValue)
+            {
+                return Unauthorized(new
+                {
+                    message =
+                        "Your login is not linked to an employee."
+                });
+            }
+
+            var employees =
+                await query
+                    .Where(employee =>
+                        employee.Id ==
+                            loggedInEmployeeId.Value
+                    )
+                    .OrderBy(employee =>
+                        employee.FullName
+                    )
+                    .Select(employee => new
+                    {
+                        employee.Id,
+                        employee.EmployeeCode,
+                        employee.FullName,
+                        employee.IsActive
+                    })
+                    .ToListAsync();
+
+            return Ok(employees);
+        }
+
+        return Forbid();
+    }
+
+    /*
+     * Work report
+     */
     [HttpGet("work-summary")]
     public async Task<ActionResult> GetWorkSummary(
         [FromQuery] DateTime? fromDate,
@@ -42,6 +167,9 @@ public class ReportsController : ControllerBase
         var reportToDate =
             (toDate ?? DateTime.Today).Date;
 
+        /*
+         * Validate dates.
+         */
         if (reportToDate < reportFromDate)
         {
             return BadRequest(new
@@ -51,8 +179,10 @@ public class ReportsController : ControllerBase
             });
         }
 
-        if ((reportToDate - reportFromDate)
-            .TotalDays > 366)
+        if (
+            (reportToDate - reportFromDate)
+                .TotalDays > 366
+        )
         {
             return BadRequest(new
             {
@@ -61,12 +191,25 @@ public class ReportsController : ControllerBase
             });
         }
 
+        var loggedInEmployeeId =
+            GetEmployeeId();
+
+        List<int>? allowedEmployeeIds = null;
+
+        /*
+         * -------------------------------------------------
+         * EMPLOYEE SECURITY
+         * -------------------------------------------------
+         *
+         * Employee users are always forced to their
+         * own employee record.
+         *
+         * Even if employeeId is manually supplied in
+         * the URL, it will be replaced here.
+         */
         if (User.IsInRole("Employee"))
         {
-            var linkedEmployeeId =
-                GetEmployeeId();
-
-            if (!linkedEmployeeId.HasValue)
+            if (!loggedInEmployeeId.HasValue)
             {
                 return Unauthorized(new
                 {
@@ -75,7 +218,60 @@ public class ReportsController : ControllerBase
                 });
             }
 
-            employeeId = linkedEmployeeId.Value;
+            employeeId =
+                loggedInEmployeeId.Value;
+        }
+
+        /*
+         * -------------------------------------------------
+         * MANAGER SECURITY
+         * -------------------------------------------------
+         *
+         * Manager users can access only employees
+         * whose ManagerId equals the manager's
+         * EmployeeId.
+         */
+        if (User.IsInRole("Manager"))
+        {
+            if (!loggedInEmployeeId.HasValue)
+            {
+                return Unauthorized(new
+                {
+                    message =
+                        "Your manager login is not linked to an employee."
+                });
+            }
+
+            allowedEmployeeIds =
+                await _database.Employees
+                    .AsNoTracking()
+                    .Where(employee =>
+                        employee.ManagerId ==
+                            loggedInEmployeeId.Value &&
+                        employee.IsActive
+                    )
+                    .Select(employee =>
+                        employee.Id
+                    )
+                    .ToListAsync();
+
+            /*
+             * If the Manager requested one specific
+             * employee, verify that employee belongs
+             * to the Manager.
+             */
+            if (employeeId.HasValue)
+            {
+                var employeeIsAllowed =
+                    allowedEmployeeIds.Contains(
+                        employeeId.Value
+                    );
+
+                if (!employeeIsAllowed)
+                {
+                    return Forbid();
+                }
+            }
         }
 
         var exclusiveToDate =
@@ -91,36 +287,74 @@ public class ReportsController : ControllerBase
                         exclusiveToDate
                 );
 
+        /*
+         * Manager without a specific employee filter
+         * gets reports for ALL of their direct reports.
+         */
+        if (User.IsInRole("Manager"))
+        {
+            query =
+                query.Where(workLog =>
+                    allowedEmployeeIds!.Contains(
+                        workLog.EmployeeId
+                    )
+                );
+        }
+
+        /*
+         * Specific employee filter.
+         *
+         * Administrator:
+         *     Can select any employee.
+         *
+         * Manager:
+         *     employeeId has already been checked.
+         *
+         * Employee:
+         *     employeeId was forced to their own ID.
+         */
         if (employeeId.HasValue)
         {
-            query = query.Where(workLog =>
-                workLog.EmployeeId ==
-                    employeeId.Value
-            );
+            query =
+                query.Where(workLog =>
+                    workLog.EmployeeId ==
+                        employeeId.Value
+                );
         }
 
+        /*
+         * Optional project filter.
+         */
         if (projectId.HasValue)
         {
-            query = query.Where(workLog =>
-                workLog.ProjectId ==
-                    projectId.Value
-            );
+            query =
+                query.Where(workLog =>
+                    workLog.ProjectId ==
+                        projectId.Value
+                );
         }
 
+        /*
+         * Main totals.
+         */
         var totalWorkLogs =
             await query.CountAsync();
 
         var totalHours =
             await query.SumAsync(workLog =>
-                (decimal?)workLog.HoursWorked
+                (decimal?)
+                    workLog.HoursWorked
             ) ?? 0;
 
         var averageProgress =
             await query.AverageAsync(workLog =>
                 (decimal?)
-                workLog.ProgressPercentage
+                    workLog.ProgressPercentage
             ) ?? 0;
 
+        /*
+         * Work-log status totals.
+         */
         var draftWorkLogs =
             await query.CountAsync(workLog =>
                 workLog.Status == "Draft"
@@ -141,18 +375,27 @@ public class ReportsController : ControllerBase
                 workLog.Status == "Rejected"
             );
 
+        /*
+         * Employee summary.
+         */
         var employeeSummaries =
             await query
                 .GroupBy(workLog => new
                 {
                     workLog.EmployeeId,
-                    workLog.Employee.EmployeeCode,
-                    workLog.Employee.FullName
+
+                    workLog.Employee
+                        .EmployeeCode,
+
+                    workLog.Employee
+                        .FullName
                 })
                 .Select(group => new
                 {
                     group.Key.EmployeeId,
+
                     group.Key.EmployeeCode,
+
                     EmployeeName =
                         group.Key.FullName,
 
@@ -172,7 +415,7 @@ public class ReportsController : ControllerBase
                     ApprovedWorkLogs =
                         group.Count(workLog =>
                             workLog.Status ==
-                            "Approved"
+                                "Approved"
                         )
                 })
                 .OrderBy(item =>
@@ -180,13 +423,20 @@ public class ReportsController : ControllerBase
                 )
                 .ToListAsync();
 
+        /*
+         * Project summary.
+         */
         var projectSummaries =
             await query
                 .GroupBy(workLog => new
                 {
                     workLog.ProjectId,
-                    workLog.Project.ProjectCode,
-                    workLog.Project.ProjectName
+
+                    workLog.Project
+                        .ProjectCode,
+
+                    workLog.Project
+                        .ProjectName
                 })
                 .Select(group => new
                 {
@@ -212,6 +462,11 @@ public class ReportsController : ControllerBase
                 )
                 .ToListAsync();
 
+        /*
+         * Work-log details.
+         *
+         * Maximum 500 records are returned.
+         */
         var workLogs =
             await query
                 .OrderByDescending(workLog =>
@@ -234,44 +489,58 @@ public class ReportsController : ControllerBase
                     workLog.EmployeeId,
 
                     EmployeeCode =
-                        workLog.Employee.EmployeeCode,
+                        workLog.Employee
+                            .EmployeeCode,
 
                     EmployeeName =
-                        workLog.Employee.FullName,
+                        workLog.Employee
+                            .FullName,
 
                     workLog.ProjectId,
 
                     ProjectCode =
-                        workLog.Project.ProjectCode,
+                        workLog.Project
+                            .ProjectCode,
 
                     ProjectName =
-                        workLog.Project.ProjectName,
+                        workLog.Project
+                            .ProjectName,
 
                     workLog.WorkTaskId,
 
                     TaskCode =
                         workLog.WorkTask == null
                             ? null
-                            : workLog.WorkTask.TaskCode,
+                            : workLog.WorkTask
+                                .TaskCode,
 
                     TaskTitle =
                         workLog.WorkTask == null
                             ? null
-                            : workLog.WorkTask.TaskTitle
+                            : workLog.WorkTask
+                                .TaskTitle
                 })
                 .ToListAsync();
 
         return Ok(new
         {
-            fromDate = reportFromDate,
-            toDate = reportToDate,
+            fromDate =
+                reportFromDate,
+
+            toDate =
+                reportToDate,
+
             employeeId,
             projectId,
 
             totalWorkLogs,
             totalHours,
+
             averageProgress =
-                Math.Round(averageProgress, 2),
+                Math.Round(
+                    averageProgress,
+                    2
+                ),
 
             draftWorkLogs,
             submittedWorkLogs,
@@ -284,15 +553,22 @@ public class ReportsController : ControllerBase
         });
     }
 
+    /*
+     * Reads employeeId from the JWT token.
+     */
     private int? GetEmployeeId()
     {
         var employeeIdValue =
-            User.FindFirstValue("employeeId");
+            User.FindFirstValue(
+                "employeeId"
+            );
 
-        if (int.TryParse(
+        if (
+            int.TryParse(
                 employeeIdValue,
                 out var employeeId
-            ))
+            )
+        )
         {
             return employeeId;
         }

@@ -1,36 +1,60 @@
-import { inject, Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+
+import {
+  inject,
+  Injectable
+} from '@angular/core';
+
+import {
+  HttpClient,
+  HttpParams
+} from '@angular/common/http';
+
+import {
+  Observable
+} from 'rxjs';
+
+import {
+  Employee
+} from '../models/employee';
 
 import {
   ProjectMember,
   ProjectMemberRequest
 } from '../models/project-member';
 
+import {
+  environment
+} from '../../environments/environment';
+
 @Injectable({
   providedIn: 'root'
 })
 export class ProjectMemberService {
-  private readonly http = inject(HttpClient);
+  private readonly http =
+    inject(HttpClient);
 
   private readonly apiUrl =
-    'http://localhost:5027/api/projectmembers';
+    `${environment.apiUrl}/projectmembers`;
 
   getProjectMembers(
     projectId?: number
   ): Observable<ProjectMember[]> {
-    let params = new HttpParams();
+    let params =
+      new HttpParams();
 
     if (projectId !== undefined) {
-      params = params.set(
-        'projectId',
-        projectId.toString()
-      );
+      params =
+        params.set(
+          'projectId',
+          projectId.toString()
+        );
     }
 
     return this.http.get<ProjectMember[]>(
       this.apiUrl,
-      { params }
+      {
+        params
+      }
     );
   }
 
@@ -39,6 +63,14 @@ export class ProjectMemberService {
   ): Observable<ProjectMember> {
     return this.http.get<ProjectMember>(
       `${this.apiUrl}/${id}`
+    );
+  }
+
+  getAvailableEmployees():
+    Observable<Employee[]> {
+
+    return this.http.get<Employee[]>(
+      `${this.apiUrl}/available-employees`
     );
   }
 

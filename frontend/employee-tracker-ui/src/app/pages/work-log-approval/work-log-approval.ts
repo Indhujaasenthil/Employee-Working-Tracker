@@ -9,6 +9,7 @@ import {
   HttpClient,
   HttpErrorResponse
 } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
 
 interface WorkLogApproval {
   id: number;
@@ -43,7 +44,7 @@ export class WorkLogApprovalComponent
   private readonly http = inject(HttpClient);
 
   private readonly apiUrl =
-    'http://localhost:5027/api/daily-work-logs';
+  `${environment.apiUrl}/daily-work-logs`
 
   readonly workLogs =
     signal<WorkLogApproval[]>([]);

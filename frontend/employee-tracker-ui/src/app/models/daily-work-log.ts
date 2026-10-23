@@ -15,7 +15,7 @@ export interface DailyWorkLog {
   projectCode: string;
   projectName: string;
 
-  taskId: number | null;
+  workTaskId: number | null;
   taskCode: string | null;
   taskTitle: string | null;
 
@@ -31,7 +31,9 @@ export interface DailyWorkLog {
 export interface DailyWorkLogRequest {
   employeeId: number;
   projectId: number;
-  taskId: number | null;
+
+  workTaskId: number | null;
+
   workDate: string;
   workDescription: string;
   hoursWorked: number;

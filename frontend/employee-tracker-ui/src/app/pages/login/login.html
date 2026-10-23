@@ -1,12 +1,18 @@
+
 <main class="login-page">
   <section class="login-card">
     <div class="brand-icon">EW</div>
 
     <h1>Employee Working Tracker</h1>
-    <p class="subtitle">Sign in to continue</p>
+
+    <p class="subtitle">
+      Sign in to continue
+    </p>
 
     @if (errorMessage()) {
-      <div class="message error">
+      <div
+        class="message error"
+        role="alert">
         {{ errorMessage() }}
       </div>
     }
@@ -26,11 +32,16 @@
           type="text"
           formControlName="userName"
           placeholder="Enter username"
-          autocomplete="username">
+          autocomplete="username"
+          [attr.aria-invalid]="isInvalid('userName')">
 
         @if (isInvalid('userName')) {
           <small class="validation-error">
-            Username is required.
+            @if (loginForm.controls.userName.hasError('required')) {
+              Username is required.
+            } @else if (loginForm.controls.userName.hasError('maxlength')) {
+              Username cannot exceed 100 characters.
+            }
           </small>
         }
       </div>
@@ -45,11 +56,16 @@
           type="password"
           formControlName="password"
           placeholder="Enter password"
-          autocomplete="current-password">
+          autocomplete="current-password"
+          [attr.aria-invalid]="isInvalid('password')">
 
         @if (isInvalid('password')) {
           <small class="validation-error">
-            Password must contain at least 6 characters.
+            @if (loginForm.controls.password.hasError('required')) {
+              Password is required.
+            } @else if (loginForm.controls.password.hasError('minlength')) {
+              Password must contain at least 6 characters.
+            }
           </small>
         }
       </div>
@@ -66,12 +82,5 @@
         }
       </button>
     </form>
-
-    <div class="login-help">
-      <p>Default administrator login</p>
-      <strong>Username:</strong> admin
-      <span class="separator">|</span>
-      <strong>Password:</strong> admin123
-    </div>
   </section>
 </main>

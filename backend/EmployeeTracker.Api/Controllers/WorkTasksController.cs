@@ -1,6 +1,8 @@
 using System.Security.Claims;
+
 using EmployeeTracker.Api.Data;
 using EmployeeTracker.Api.Models;
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +25,10 @@ public class WorkTasksController : ControllerBase
         _database = database;
     }
 
+    // =========================================================
+    // GET ALL TASKS
+    // =========================================================
+
     [HttpGet]
     [Authorize(
         Roles = "Administrator,Manager,Employee"
@@ -33,6 +39,7 @@ public class WorkTasksController : ControllerBase
             _database.WorkTasks
                 .AsNoTracking();
 
+        // Employee can see only their own tasks.
         if (User.IsInRole("Employee"))
         {
             var employeeId = GetEmployeeId();
@@ -94,6 +101,10 @@ public class WorkTasksController : ControllerBase
 
         return Ok(workTasks);
     }
+
+    // =========================================================
+    // GET ONE TASK
+    // =========================================================
 
     [HttpGet("{id:int}")]
     [Authorize(
@@ -178,10 +189,14 @@ public class WorkTasksController : ControllerBase
         return Ok(workTask);
     }
 
+    // =========================================================
+    // CREATE TASK
+    // =========================================================
+
     [HttpPost]
     [Authorize(Roles = "Administrator,Manager")]
     public async Task<ActionResult> CreateWorkTask(
-        WorkTask request
+        WorkTaskRequest request
     )
     {
         if (string.IsNullOrWhiteSpace(
@@ -201,6 +216,14 @@ public class WorkTasksController : ControllerBase
             return BadRequest(new
             {
                 message = "Task title is required."
+            });
+        }
+
+        if (request.ProjectId <= 0)
+        {
+            return BadRequest(new
+            {
+                message = "Project is required."
             });
         }
 
@@ -250,9 +273,11 @@ public class WorkTasksController : ControllerBase
             return employeeValidation;
         }
 
-        if (request.DueDate.HasValue &&
+        if (
+            request.DueDate.HasValue &&
             request.DueDate.Value.Date <
-            request.StartDate.Date)
+            request.StartDate.Date
+        )
         {
             return BadRequest(new
             {
@@ -270,10 +295,33 @@ public class WorkTasksController : ControllerBase
             });
         }
 
+        if (string.IsNullOrWhiteSpace(
+                request.Priority
+            ))
+        {
+            return BadRequest(new
+            {
+                message = "Priority is required."
+            });
+        }
+
+        if (string.IsNullOrWhiteSpace(
+                request.Status
+            ))
+        {
+            return BadRequest(new
+            {
+                message = "Status is required."
+            });
+        }
+
         var workTask = new WorkTask
         {
-            TaskCode = taskCode,
-            TaskTitle = request.TaskTitle.Trim(),
+            TaskCode =
+                taskCode,
+
+            TaskTitle =
+                request.TaskTitle.Trim(),
 
             Description =
                 string.IsNullOrWhiteSpace(
@@ -282,13 +330,17 @@ public class WorkTasksController : ControllerBase
                     ? null
                     : request.Description.Trim(),
 
-            ProjectId = request.ProjectId,
+            ProjectId =
+                request.ProjectId,
 
             AssignedEmployeeId =
                 request.AssignedEmployeeId,
 
-            StartDate = request.StartDate.Date,
-            DueDate = request.DueDate?.Date,
+            StartDate =
+                request.StartDate.Date,
+
+            DueDate =
+                request.DueDate?.Date,
 
             Priority =
                 request.Priority.Trim(),
@@ -299,8 +351,11 @@ public class WorkTasksController : ControllerBase
             EstimatedHours =
                 request.EstimatedHours,
 
-            IsActive = request.IsActive,
-            CreatedAt = DateTime.UtcNow
+            IsActive =
+                request.IsActive,
+
+            CreatedAt =
+                DateTime.UtcNow
         };
 
         _database.WorkTasks.Add(workTask);
@@ -310,15 +365,34 @@ public class WorkTasksController : ControllerBase
         return CreatedAtAction(
             nameof(GetWorkTask),
             new { id = workTask.Id },
-            workTask
+            new
+            {
+                workTask.Id,
+                workTask.TaskCode,
+                workTask.TaskTitle,
+                workTask.Description,
+                workTask.ProjectId,
+                workTask.AssignedEmployeeId,
+                workTask.StartDate,
+                workTask.DueDate,
+                workTask.Priority,
+                workTask.Status,
+                workTask.EstimatedHours,
+                workTask.IsActive,
+                workTask.CreatedAt
+            }
         );
     }
+
+    // =========================================================
+    // UPDATE TASK
+    // =========================================================
 
     [HttpPut("{id:int}")]
     [Authorize(Roles = "Administrator,Manager")]
     public async Task<ActionResult> UpdateWorkTask(
         int id,
-        WorkTask request
+        WorkTaskRequest request
     )
     {
         var workTask =
@@ -351,6 +425,14 @@ public class WorkTasksController : ControllerBase
             return BadRequest(new
             {
                 message = "Task title is required."
+            });
+        }
+
+        if (request.ProjectId <= 0)
+        {
+            return BadRequest(new
+            {
+                message = "Project is required."
             });
         }
 
@@ -401,9 +483,11 @@ public class WorkTasksController : ControllerBase
             return employeeValidation;
         }
 
-        if (request.DueDate.HasValue &&
+        if (
+            request.DueDate.HasValue &&
             request.DueDate.Value.Date <
-            request.StartDate.Date)
+            request.StartDate.Date
+        )
         {
             return BadRequest(new
             {
@@ -421,7 +505,28 @@ public class WorkTasksController : ControllerBase
             });
         }
 
-        workTask.TaskCode = taskCode;
+        if (string.IsNullOrWhiteSpace(
+                request.Priority
+            ))
+        {
+            return BadRequest(new
+            {
+                message = "Priority is required."
+            });
+        }
+
+        if (string.IsNullOrWhiteSpace(
+                request.Status
+            ))
+        {
+            return BadRequest(new
+            {
+                message = "Status is required."
+            });
+        }
+
+        workTask.TaskCode =
+            taskCode;
 
         workTask.TaskTitle =
             request.TaskTitle.Trim();
@@ -461,6 +566,10 @@ public class WorkTasksController : ControllerBase
 
         return NoContent();
     }
+
+    // =========================================================
+    // DELETE TASK
+    // =========================================================
 
     [HttpDelete("{id:int}")]
     [Authorize(Roles = "Administrator")]
@@ -503,15 +612,21 @@ public class WorkTasksController : ControllerBase
         return NoContent();
     }
 
+    // =========================================================
+    // GET LOGGED-IN EMPLOYEE ID
+    // =========================================================
+
     private int? GetEmployeeId()
     {
         var employeeIdValue =
             User.FindFirstValue("employeeId");
 
-        if (int.TryParse(
+        if (
+            int.TryParse(
                 employeeIdValue,
                 out var employeeId
-            ))
+            )
+        )
         {
             return employeeId;
         }
@@ -519,12 +634,18 @@ public class WorkTasksController : ControllerBase
         return null;
     }
 
+    // =========================================================
+    // VALIDATE ASSIGNED EMPLOYEE
+    // =========================================================
+
     private async Task<ActionResult?>
         ValidateAssignedEmployee(
             int projectId,
             int? employeeId
         )
     {
+        // Task can be created without assigning
+        // an employee.
         if (!employeeId.HasValue)
         {
             return null;
@@ -533,7 +654,8 @@ public class WorkTasksController : ControllerBase
         var employeeExists =
             await _database.Employees
                 .AnyAsync(employee =>
-                    employee.Id == employeeId.Value &&
+                    employee.Id ==
+                        employeeId.Value &&
                     employee.IsActive
                 );
 
@@ -546,10 +668,13 @@ public class WorkTasksController : ControllerBase
             });
         }
 
+        // Employee must already belong
+        // to the selected project team.
         var employeeIsProjectMember =
             await _database.ProjectMembers
                 .AnyAsync(member =>
-                    member.ProjectId == projectId &&
+                    member.ProjectId ==
+                        projectId &&
                     member.EmployeeId ==
                         employeeId.Value &&
                     member.IsActive

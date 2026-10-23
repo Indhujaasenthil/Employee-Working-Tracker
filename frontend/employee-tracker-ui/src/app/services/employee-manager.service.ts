@@ -1,3 +1,4 @@
+
 import {
   inject,
   Injectable
@@ -18,6 +19,10 @@ import {
   EmployeeManagerResponse
 } from '../models/employee-manager';
 
+import {
+  environment
+} from '../../environments/environment';
+
 @Injectable({
   providedIn: 'root'
 })
@@ -26,7 +31,7 @@ export class EmployeeManagerService {
     inject(HttpClient);
 
   private readonly apiUrl =
-    'http://localhost:5027/api/employee-managers';
+    `${environment.apiUrl}/employee-managers`;
 
   getEmployees():
     Observable<EmployeeManager[]> {
@@ -48,6 +53,7 @@ export class EmployeeManagerService {
     employeeId: number,
     managerId: number | null
   ): Observable<EmployeeManagerResponse> {
+
     const request: EmployeeManagerRequest = {
       managerId
     };

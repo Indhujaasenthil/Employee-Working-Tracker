@@ -1,0 +1,26 @@
+# .NET generated files
+**/bin/
+**/obj/
+**/.vs/
+
+# Angular generated files
+**/node_modules/
+**/dist/
+**/.angular/
+**/coverage/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+**/appsettings.Development.json
+**/appsettings.Production.json
+**/appsettings.Local.json
+**/secrets.json
+
+# IDE and logs
+.vscode/
+.idea/
+*.user
+*.suo
+*.log

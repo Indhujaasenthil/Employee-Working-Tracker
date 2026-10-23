@@ -1,3 +1,4 @@
+
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
@@ -7,6 +8,10 @@ import {
   DesignationRequest
 } from '../models/designation';
 
+import {
+  environment
+} from '../../environments/environment';
+
 @Injectable({
   providedIn: 'root'
 })
@@ -14,7 +19,7 @@ export class DesignationService {
   private readonly http = inject(HttpClient);
 
   private readonly apiUrl =
-    'http://localhost:5027/api/designations';
+    `${environment.apiUrl}/designations`;
 
   getDesignations(): Observable<Designation[]> {
     return this.http.get<Designation[]>(

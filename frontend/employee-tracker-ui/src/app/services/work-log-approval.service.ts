@@ -1,14 +1,25 @@
+
 import {
   inject,
   Injectable
 } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+
+import {
+  HttpClient
+} from '@angular/common/http';
+
+import {
+  Observable
+} from 'rxjs';
 
 import {
   ApprovalStatus,
   WorkLogApproval
 } from '../models/work-log-approval.model';
+
+import {
+  environment
+} from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -17,7 +28,7 @@ export class WorkLogApprovalService {
   private readonly http = inject(HttpClient);
 
   private readonly apiUrl =
-    'http://localhost:5027/api/daily-work-logs';
+    `${environment.apiUrl}/daily-work-logs`;
 
   getWorkLogs(): Observable<WorkLogApproval[]> {
     return this.http.get<WorkLogApproval[]>(

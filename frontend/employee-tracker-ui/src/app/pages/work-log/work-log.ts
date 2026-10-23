@@ -4,16 +4,20 @@ import {
   OnInit,
   signal
 } from '@angular/core';
+
 import {
   HttpClient,
   HttpErrorResponse
 } from '@angular/common/http';
+
 import {
   FormBuilder,
   ReactiveFormsModule,
   Validators
 } from '@angular/forms';
+
 import { forkJoin } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 interface Employee {
   id: number;
@@ -41,73 +45,117 @@ interface WorkTask {
   isActive: boolean;
 }
 
+type WorkLogStatus =
+  | 'Draft'
+  | 'Submitted'
+  | 'Approved'
+  | 'Rejected';
+
 interface DailyWorkLog {
   id: number;
+
   employeeId: number;
+  employeeCode?: string;
   employeeName: string;
+
   projectId: number;
+  projectCode?: string;
   projectName: string;
-  taskId: number;
-  taskTitle: string;
+
+  workTaskId: number | null;
+  taskCode?: string | null;
+  taskTitle: string | null;
+
   workDate: string;
   hoursWorked: number;
   progressPercentage: number;
-  status: string;
+
+  status: WorkLogStatus;
+
   workDescription: string;
   blockers: string | null;
+
   createdAt: string;
 }
 
 interface DailyWorkLogRequest {
   employeeId: number;
   projectId: number;
-  taskId: number;
+
+  /*
+   * IMPORTANT:
+   * The backend expects WorkTaskId.
+   * ASP.NET JSON converts it to workTaskId.
+   */
+  workTaskId: number | null;
+
   workDate: string;
   hoursWorked: number;
   progressPercentage: number;
-  status: string;
+
+  status: WorkLogStatus;
+
   workDescription: string;
   blockers: string | null;
 }
 
 @Component({
   selector: 'app-work-log',
+  standalone: true,
   imports: [
     ReactiveFormsModule
   ],
   templateUrl: './work-log.html',
   styleUrl: './work-log.scss'
 })
-export class WorkLogComponent implements OnInit {
-  private readonly http = inject(HttpClient);
-  private readonly formBuilder = inject(FormBuilder);
+export class WorkLogComponent
+  implements OnInit {
+
+  private readonly http =
+    inject(HttpClient);
+
+  private readonly formBuilder =
+    inject(FormBuilder);
 
   private readonly apiUrl =
-    'http://localhost:5027/api';
+    environment.apiUrl;
 
-  readonly employees = signal<Employee[]>([]);
-  readonly projects = signal<Project[]>([]);
-  readonly tasks = signal<WorkTask[]>([]);
+  readonly employees =
+    signal<Employee[]>([]);
+
+  readonly projects =
+    signal<Project[]>([]);
+
+  readonly tasks =
+    signal<WorkTask[]>([]);
 
   readonly filteredTasks =
     signal<WorkTask[]>([]);
 
-  // This alias allows an existing HTML file using
-  // availableTasks() to continue working.
+  /*
+   * Keep this alias in case another part
+   * of the page uses availableTasks().
+   */
   readonly availableTasks =
     this.filteredTasks;
 
   readonly workLogs =
     signal<DailyWorkLog[]>([]);
 
-  readonly loading = signal(false);
-  readonly saving = signal(false);
+  readonly loading =
+    signal(false);
+
+  readonly saving =
+    signal(false);
 
   readonly editingId =
     signal<number | null>(null);
 
-  readonly errorMessage = signal('');
-  readonly successMessage = signal('');
+  readonly errorMessage =
+    signal('');
+
+  readonly successMessage =
+    signal('');
 
   readonly workLogForm =
     this.formBuilder.nonNullable.group({
@@ -118,6 +166,7 @@ export class WorkLogComponent implements OnInit {
           Validators.min(1)
         ]
       ],
+
       projectId: [
         0,
         [
@@ -125,6 +174,11 @@ export class WorkLogComponent implements OnInit {
           Validators.min(1)
         ]
       ],
+
+      /*
+       * taskId is only the Angular
+       * form-control name.
+       */
       taskId: [
         0,
         [
@@ -132,10 +186,14 @@ export class WorkLogComponent implements OnInit {
           Validators.min(1)
         ]
       ],
+
       workDate: [
         this.getCurrentDate(),
-        Validators.required
+        [
+          Validators.required
+        ]
       ],
+
       hoursWorked: [
         8,
         [
@@ -144,6 +202,7 @@ export class WorkLogComponent implements OnInit {
           Validators.max(24)
         ]
       ],
+
       progressPercentage: [
         0,
         [
@@ -152,10 +211,14 @@ export class WorkLogComponent implements OnInit {
           Validators.max(100)
         ]
       ],
+
       status: [
-        'Draft',
-        Validators.required
+        'Draft' as WorkLogStatus,
+        [
+          Validators.required
+        ]
       ],
+
       workDescription: [
         '',
         [
@@ -163,9 +226,12 @@ export class WorkLogComponent implements OnInit {
           Validators.maxLength(1000)
         ]
       ],
+
       blockers: [
         '',
-        Validators.maxLength(500)
+        [
+          Validators.maxLength(500)
+        ]
       ]
     });
 
@@ -179,46 +245,62 @@ export class WorkLogComponent implements OnInit {
     this.errorMessage.set('');
 
     forkJoin({
-      employees: this.http.get<Employee[]>(
-        `${this.apiUrl}/employees`
-      ),
-      projects: this.http.get<Project[]>(
-        `${this.apiUrl}/projects`
-      ),
-      tasks: this.http.get<WorkTask[]>(
-        `${this.apiUrl}/worktasks`
-      ),
-      workLogs: this.http.get<DailyWorkLog[]>(
-        `${this.apiUrl}/daily-work-logs`
-      )
+      employees:
+        this.http.get<Employee[]>(
+          `${this.apiUrl}/employees`
+        ),
+
+      projects:
+        this.http.get<Project[]>(
+          `${this.apiUrl}/projects`
+        ),
+
+      tasks:
+        this.http.get<WorkTask[]>(
+          `${this.apiUrl}/worktasks`
+        ),
+
+      workLogs:
+        this.http.get<DailyWorkLog[]>(
+          `${this.apiUrl}/daily-work-logs`
+        )
     }).subscribe({
-      next: (result) => {
+      next: result => {
         this.employees.set(
           result.employees.filter(
-            employee => employee.isActive
+            employee =>
+              employee.isActive
           )
         );
 
         this.projects.set(
           result.projects.filter(
-            project => project.isActive
+            project =>
+              project.isActive
           )
         );
 
         this.tasks.set(
           result.tasks.filter(
-            task => task.isActive
+            task =>
+              task.isActive
           )
         );
 
-        this.workLogs.set(result.workLogs);
+        this.workLogs.set(
+          result.workLogs
+        );
 
         this.setDefaultSelections();
+
         this.filterTasks();
 
         this.loading.set(false);
       },
-      error: (error: HttpErrorResponse) => {
+
+      error: (
+        error: HttpErrorResponse
+      ) => {
         console.error(
           'Work-log page loading error:',
           error
@@ -236,8 +318,6 @@ export class WorkLogComponent implements OnInit {
     });
   }
 
-  // This keeps an existing Refresh button working
-  // if the HTML calls loadWorkLogs().
   loadWorkLogs(): void {
     this.loadPageData();
   }
@@ -247,9 +327,12 @@ export class WorkLogComponent implements OnInit {
       .valueChanges
       .subscribe(() => {
         this.workLogForm.controls.taskId
-          .setValue(0, {
-            emitEvent: false
-          });
+          .setValue(
+            0,
+            {
+              emitEvent: false
+            }
+          );
 
         this.filterTasks();
       });
@@ -258,9 +341,12 @@ export class WorkLogComponent implements OnInit {
       .valueChanges
       .subscribe(() => {
         this.workLogForm.controls.taskId
-          .setValue(0, {
-            emitEvent: false
-          });
+          .setValue(
+            0,
+            {
+              emitEvent: false
+            }
+          );
 
         this.filterTasks();
       });
@@ -268,70 +354,75 @@ export class WorkLogComponent implements OnInit {
 
   private setDefaultSelections(): void {
     if (
-      this.workLogForm.controls.employeeId.value === 0 &&
+      this.workLogForm.controls
+        .employeeId.value === 0 &&
       this.employees().length > 0
     ) {
-      this.workLogForm.controls.employeeId.setValue(
-        this.employees()[0].id,
-        {
-          emitEvent: false
-        }
-      );
+      this.workLogForm.controls
+        .employeeId
+        .setValue(
+          this.employees()[0].id,
+          {
+            emitEvent: false
+          }
+        );
     }
 
     if (
-      this.workLogForm.controls.projectId.value === 0 &&
+      this.workLogForm.controls
+        .projectId.value === 0 &&
       this.projects().length > 0
     ) {
-      this.workLogForm.controls.projectId.setValue(
-        this.projects()[0].id,
-        {
-          emitEvent: false
-        }
-      );
+      this.workLogForm.controls
+        .projectId
+        .setValue(
+          this.projects()[0].id,
+          {
+            emitEvent: false
+          }
+        );
     }
   }
+  formatDisplayDate(value: string): string {
+    if (!value) {
+      return '-';
+    }
 
- filterTasks(): void {
-  const projectId = Number(
-    this.workLogForm.controls.projectId.value
-  );
+    const datePart = value.substring(0, 10);
+    const [year, month, day] = datePart.split('-');
 
-  if (projectId <= 0) {
-    this.filteredTasks.set([]);
-    return;
+    if (!year || !month || !day) {
+      return value;
+    }
+
+    return `${day}/${month}/${year}`;
   }
+  filterTasks(): void {
+    const projectId = Number(
+      this.workLogForm.controls.projectId.value
+    );
 
-  const matchingTasks = this.tasks().filter(
-    (task: WorkTask) =>
-      Number(task.projectId) === projectId &&
-      task.isActive
-  );
+    if (projectId <= 0) {
+      this.filteredTasks.set([]);
+      return;
+    }
 
-  console.log(
-    'All tasks:',
-    this.tasks()
-  );
+    const matchingTasks = this.tasks().filter(
+      (task: WorkTask) =>
+        Number(task.projectId) === projectId &&
+        task.isActive
+    );
 
-  console.log(
-    'Selected project ID:',
-    projectId
-  );
-
-  console.log(
-    'Filtered tasks:',
-    matchingTasks
-  );
-
-  this.filteredTasks.set(matchingTasks);
-}
+    this.filteredTasks.set(matchingTasks);
+  }
 
   saveWorkLog(): void {
     this.errorMessage.set('');
     this.successMessage.set('');
 
     if (this.workLogForm.invalid) {
-      this.workLogForm.markAllAsTouched();
+      this.workLogForm
+        .markAllAsTouched();
 
       this.errorMessage.set(
         'Please complete all required fields.'
@@ -343,108 +434,190 @@ export class WorkLogComponent implements OnInit {
     const formValue =
       this.workLogForm.getRawValue();
 
-    const request: DailyWorkLogRequest = {
+    /*
+     * IMPORTANT:
+     *
+     * Angular form:
+     * taskId
+     *
+     * API:
+     * workTaskId
+     */
+    const request:
+      DailyWorkLogRequest = {
+
       employeeId:
-        Number(formValue.employeeId),
+        Number(
+          formValue.employeeId
+        ),
 
       projectId:
-        Number(formValue.projectId),
+        Number(
+          formValue.projectId
+        ),
 
-      taskId:
-        Number(formValue.taskId),
+      workTaskId:
+        Number(
+          formValue.taskId
+        ),
 
       workDate:
         formValue.workDate,
 
       hoursWorked:
-        Number(formValue.hoursWorked),
+        Number(
+          formValue.hoursWorked
+        ),
 
       progressPercentage:
-        Number(formValue.progressPercentage),
+        Number(
+          formValue.progressPercentage
+        ),
 
       status:
         formValue.status,
 
       workDescription:
-        formValue.workDescription.trim(),
+        formValue.workDescription
+          .trim(),
 
       blockers:
-        formValue.blockers.trim() || null
+        formValue.blockers
+          .trim() || null
     };
 
     this.saving.set(true);
 
-    const id = this.editingId();
+    const id =
+      this.editingId();
 
     if (id === null) {
-      this.createWorkLog(request);
-    } else {
-      this.updateWorkLog(id, request);
+      this.createWorkLog(
+        request
+      );
+
+      return;
     }
+
+    this.updateWorkLog(
+      id,
+      request
+    );
   }
 
   private createWorkLog(
     request: DailyWorkLogRequest
   ): void {
-    this.http.post(
-      `${this.apiUrl}/daily-work-logs`,
-      request
-    ).subscribe({
-      next: () => {
-        this.successMessage.set(
-          'Daily work log added successfully.'
-        );
+    this.http
+      .post<DailyWorkLog>(
+        `${this.apiUrl}/daily-work-logs`,
+        request
+      )
+      .subscribe({
+        next: () => {
+          this.successMessage.set(
+            'Daily work log added successfully.'
+          );
 
-        this.saving.set(false);
-        this.resetForm();
-        this.loadPageData();
-      },
-      error: (error: HttpErrorResponse) => {
-        this.handleSaveError(error);
-      }
-    });
+          this.saving.set(false);
+
+          this.resetForm();
+
+          this.loadPageData();
+        },
+
+        error: (
+          error: HttpErrorResponse
+        ) => {
+          this.handleSaveError(
+            error
+          );
+        }
+      });
   }
 
   private updateWorkLog(
     id: number,
     request: DailyWorkLogRequest
   ): void {
-    this.http.put<void>(
-      `${this.apiUrl}/daily-work-logs/${id}`,
-      request
-    ).subscribe({
-      next: () => {
-        this.successMessage.set(
-          'Daily work log updated successfully.'
-        );
+    this.http
+      .put<void>(
+        `${this.apiUrl}/daily-work-logs/${id}`,
+        request
+      )
+      .subscribe({
+        next: () => {
+          this.successMessage.set(
+            'Daily work log updated successfully.'
+          );
 
-        this.saving.set(false);
-        this.resetForm();
-        this.loadPageData();
-      },
-      error: (error: HttpErrorResponse) => {
-        this.handleSaveError(error);
-      }
-    });
+          this.saving.set(false);
+
+          this.resetForm();
+
+          this.loadPageData();
+        },
+
+        error: (
+          error: HttpErrorResponse
+        ) => {
+          this.handleSaveError(
+            error
+          );
+        }
+      });
   }
 
   editWorkLog(
     workLog: DailyWorkLog
   ): void {
-    this.editingId.set(workLog.id);
+    /*
+     * Approved and Submitted records
+     * should normally be controlled by
+     * the workflow rather than freely
+     * edited.
+     */
+    if (
+      workLog.status ===
+      'Approved' ||
+      workLog.status ===
+      'Submitted'
+    ) {
+      this.errorMessage.set(
+        `A ${workLog.status.toLowerCase()} ` +
+        'work log cannot be edited.'
+      );
+
+      return;
+    }
+
+    this.editingId.set(
+      workLog.id
+    );
+
     this.errorMessage.set('');
     this.successMessage.set('');
 
     this.workLogForm.patchValue(
       {
         employeeId:
-          Number(workLog.employeeId),
+          Number(
+            workLog.employeeId
+          ),
 
         projectId:
-          Number(workLog.projectId),
+          Number(
+            workLog.projectId
+          ),
 
+        /*
+         * API response uses workTaskId.
+         * Angular form uses taskId.
+         */
         taskId:
-          Number(workLog.taskId),
+          Number(
+            workLog.workTaskId ?? 0
+          ),
 
         workDate:
           this.formatDateForInput(
@@ -452,13 +625,24 @@ export class WorkLogComponent implements OnInit {
           ),
 
         hoursWorked:
-          Number(workLog.hoursWorked),
+          Number(
+            workLog.hoursWorked
+          ),
 
         progressPercentage:
-          Number(workLog.progressPercentage),
+          Number(
+            workLog.progressPercentage
+          ),
 
+        /*
+         * Rejected work logs can be
+         * corrected and submitted again.
+         */
         status:
-          workLog.status,
+          workLog.status ===
+            'Rejected'
+            ? 'Draft'
+            : workLog.status,
 
         workDescription:
           workLog.workDescription,
@@ -482,10 +666,25 @@ export class WorkLogComponent implements OnInit {
   deleteWorkLog(
     workLog: DailyWorkLog
   ): void {
-    const confirmed = window.confirm(
-      `Delete the work log for ` +
-      `"${workLog.employeeName}"?`
-    );
+    if (
+      workLog.status ===
+      'Approved' ||
+      workLog.status ===
+      'Submitted'
+    ) {
+      this.errorMessage.set(
+        `A ${workLog.status.toLowerCase()} ` +
+        'work log cannot be deleted.'
+      );
+
+      return;
+    }
+
+    const confirmed =
+      window.confirm(
+        `Delete the work log for ` +
+        `"${workLog.employeeName}"?`
+      );
 
     if (!confirmed) {
       return;
@@ -494,36 +693,60 @@ export class WorkLogComponent implements OnInit {
     this.errorMessage.set('');
     this.successMessage.set('');
 
-    this.http.delete<void>(
-      `${this.apiUrl}/daily-work-logs/${workLog.id}`
-    ).subscribe({
-      next: () => {
-        this.successMessage.set(
-          'Daily work log deleted successfully.'
-        );
+    this.http
+      .delete<void>(
+        `${this.apiUrl}/daily-work-logs/${workLog.id}`
+      )
+      .subscribe({
+        next: () => {
+          this.successMessage.set(
+            'Daily work log deleted successfully.'
+          );
 
-        if (
-          this.editingId() === workLog.id
-        ) {
-          this.resetForm();
+          if (
+            this.editingId() ===
+            workLog.id
+          ) {
+            this.resetForm();
+          }
+
+          this.loadPageData();
+        },
+
+        error: (
+          error: HttpErrorResponse
+        ) => {
+          console.error(
+            'Work-log deletion error:',
+            error
+          );
+
+          this.errorMessage.set(
+            this.getErrorMessage(
+              error,
+              'Unable to delete daily work log.'
+            )
+          );
         }
+      });
+  }
 
-        this.loadPageData();
-      },
-      error: (error: HttpErrorResponse) => {
-        console.error(
-          'Work-log deletion error:',
-          error
-        );
+  canEdit(
+    workLog: DailyWorkLog
+  ): boolean {
+    return (
+      workLog.status === 'Draft' ||
+      workLog.status === 'Rejected'
+    );
+  }
 
-        this.errorMessage.set(
-          this.getErrorMessage(
-            error,
-            'Unable to delete daily work log.'
-          )
-        );
-      }
-    });
+  canDelete(
+    workLog: DailyWorkLog
+  ): boolean {
+    return (
+      workLog.status === 'Draft' ||
+      workLog.status === 'Rejected'
+    );
   }
 
   resetForm(): void {
@@ -543,11 +766,18 @@ export class WorkLogComponent implements OnInit {
       employeeId,
       projectId,
       taskId: 0,
-      workDate: this.getCurrentDate(),
+
+      workDate:
+        this.getCurrentDate(),
+
       hoursWorked: 8,
+
       progressPercentage: 0,
+
       status: 'Draft',
+
       workDescription: '',
+
       blockers: ''
     });
 
@@ -567,11 +797,15 @@ export class WorkLogComponent implements OnInit {
       | 'blockers'
   ): boolean {
     const control =
-      this.workLogForm.controls[controlName];
+      this.workLogForm
+        .controls[controlName];
 
     return (
       control.invalid &&
-      (control.touched || control.dirty)
+      (
+        control.touched ||
+        control.dirty
+      )
     );
   }
 
@@ -604,6 +838,48 @@ export class WorkLogComponent implements OnInit {
       return error.error.message;
     }
 
+    /*
+     * ASP.NET validation errors may be
+     * returned in the errors object.
+     */
+    if (
+      error.error?.errors &&
+      typeof error.error.errors ===
+      'object'
+    ) {
+      const validationMessages =
+        Object.values(
+          error.error.errors
+        )
+          .flat()
+          .filter(
+            message =>
+              typeof message ===
+              'string'
+          );
+
+      if (
+        validationMessages.length > 0
+      ) {
+        return validationMessages
+          .join(' ');
+      }
+    }
+
+    if (error.status === 401) {
+      return (
+        'Your login session is invalid or expired. ' +
+        'Please log in again.'
+      );
+    }
+
+    if (error.status === 403) {
+      return (
+        'You do not have permission to perform ' +
+        'this work-log action.'
+      );
+    }
+
     if (error.status === 0) {
       return (
         'Unable to connect to the backend. ' +
@@ -615,19 +891,31 @@ export class WorkLogComponent implements OnInit {
   }
 
   private getCurrentDate(): string {
-    const today = new Date();
+    const today =
+      new Date();
 
-    const year = today.getFullYear();
+    const year =
+      today.getFullYear();
 
-    const month = String(
-      today.getMonth() + 1
-    ).padStart(2, '0');
+    const month =
+      String(
+        today.getMonth() + 1
+      ).padStart(
+        2,
+        '0'
+      );
 
-    const day = String(
-      today.getDate()
-    ).padStart(2, '0');
+    const day =
+      String(
+        today.getDate()
+      ).padStart(
+        2,
+        '0'
+      );
 
-    return `${year}-${month}-${day}`;
+    return (
+      `${year}-${month}-${day}`
+    );
   }
 
   private formatDateForInput(
@@ -637,6 +925,9 @@ export class WorkLogComponent implements OnInit {
       return this.getCurrentDate();
     }
 
-    return value.substring(0, 10);
+    return value.substring(
+      0,
+      10
+    );
   }
 }

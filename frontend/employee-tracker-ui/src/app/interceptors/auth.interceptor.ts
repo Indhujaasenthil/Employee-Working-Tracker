@@ -1,8 +1,11 @@
+
 import { inject } from '@angular/core';
+
 import {
   HttpErrorResponse,
   HttpInterceptorFn
 } from '@angular/common/http';
+
 import {
   catchError,
   throwError
@@ -17,8 +20,15 @@ export const authInterceptor: HttpInterceptorFn = (
   next
 ) => {
   const authService = inject(AuthService);
-  const token = authService.getToken();
 
+  const isLoginRequest =
+    request.url.includes('/api/auth/login');
+
+  const token = isLoginRequest
+    ? null
+    : authService.getToken();
+
+  // Attach JWT to authenticated API requests.
   const authenticatedRequest = token
     ? request.clone({
         setHeaders: {
@@ -29,12 +39,24 @@ export const authInterceptor: HttpInterceptorFn = (
 
   return next(authenticatedRequest).pipe(
     catchError((error: HttpErrorResponse) => {
+
+      // Logout only when a request sent with
+      // our JWT is rejected as unauthorized.
       if (
         error.status === 401 &&
-        !request.url.includes('/api/auth/login')
+        token !== null &&
+        !isLoginRequest
       ) {
-        authService.logout();
+        // Avoid clearing a newer session if
+        // an older request fails after re-login.
+        if (authService.getToken() === token) {
+          authService.logout();
+        }
       }
+
+      // 403 means the user is authenticated
+      // but does not have permission.
+      // Do not logout for 403.
 
       return throwError(() => error);
     })

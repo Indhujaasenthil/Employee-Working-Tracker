@@ -1,3 +1,4 @@
+
 import {
   Component,
   inject,
@@ -31,6 +32,10 @@ import {
   ReportService
 } from '../../services/report.service';
 
+import {
+  environment
+} from '../../../environments/environment';
+
 interface EmployeeOption {
   id: number;
   employeeCode: string;
@@ -57,6 +62,7 @@ interface ProjectOption {
   styleUrl: './report.scss'
 })
 export class ReportComponent implements OnInit {
+
   private readonly reportService =
     inject(ReportService);
 
@@ -66,11 +72,12 @@ export class ReportComponent implements OnInit {
   private readonly formBuilder =
     inject(FormBuilder);
 
-  private readonly employeeApiUrl =
-    'http://localhost:5027/api/employees';
+  // Role-secured employee options endpoint
+  private readonly employeeOptionsUrl =
+    `${environment.apiUrl}/reports/employee-options`;
 
-  private readonly projectApiUrl =
-    'http://localhost:5027/api/projects';
+  private readonly projectsUrl =
+    `${environment.apiUrl}/projects`;
 
   readonly report =
     signal<WorkReport | null>(null);
@@ -81,8 +88,11 @@ export class ReportComponent implements OnInit {
   readonly projects =
     signal<ProjectOption[]>([]);
 
-  readonly loading = signal(false);
-  readonly errorMessage = signal('');
+  readonly loading =
+    signal(false);
+
+  readonly errorMessage =
+    signal('');
 
   readonly reportForm =
     this.formBuilder.group({
@@ -138,7 +148,6 @@ export class ReportComponent implements OnInit {
       this.errorMessage.set(
         'To date cannot be earlier than from date.'
       );
-
       return;
     }
 
@@ -165,7 +174,9 @@ export class ReportComponent implements OnInit {
           this.loading.set(false);
         },
 
-        error: (error: HttpErrorResponse) => {
+        error: (
+          error: HttpErrorResponse
+        ) => {
           console.error(
             'Report loading error:',
             error
@@ -173,10 +184,21 @@ export class ReportComponent implements OnInit {
 
           this.report.set(null);
 
-          this.errorMessage.set(
-            error.error?.message ??
-              'Unable to load the report.'
-          );
+          if (error.status === 403) {
+            this.errorMessage.set(
+              'You do not have permission to view this employee report.'
+            );
+          } else if (error.status === 401) {
+            this.errorMessage.set(
+              error.error?.message ??
+                'Your login is not authorized to view this report.'
+            );
+          } else {
+            this.errorMessage.set(
+              error.error?.message ??
+                'Unable to load the report.'
+            );
+          }
 
           this.loading.set(false);
         }
@@ -199,14 +221,18 @@ export class ReportComponent implements OnInit {
   }
 
   exportCsv(): void {
-    const report = this.report();
+    this.errorMessage.set('');
 
-    if (!report ||
-        report.workLogs.length === 0) {
+    const report =
+      this.report();
+
+    if (
+      !report ||
+      report.workLogs.length === 0
+    ) {
       this.errorMessage.set(
         'There are no work-log records to export.'
       );
-
       return;
     }
 
@@ -225,22 +251,23 @@ export class ReportComponent implements OnInit {
       'Blockers'
     ];
 
-    const rows = report.workLogs.map(
-      workLog => [
-        workLog.workDate,
-        workLog.employeeCode,
-        workLog.employeeName,
-        workLog.projectCode,
-        workLog.projectName,
-        workLog.taskCode ?? '',
-        workLog.taskTitle ?? '',
-        workLog.hoursWorked.toString(),
-        `${workLog.progressPercentage}%`,
-        workLog.status,
-        workLog.workDescription,
-        workLog.blockers ?? ''
-      ]
-    );
+    const rows =
+      report.workLogs.map(
+        workLog => [
+          workLog.workDate,
+          workLog.employeeCode,
+          workLog.employeeName,
+          workLog.projectCode,
+          workLog.projectName,
+          workLog.taskCode ?? '',
+          workLog.taskTitle ?? '',
+          workLog.hoursWorked.toString(),
+          `${workLog.progressPercentage}%`,
+          workLog.status,
+          workLog.workDescription,
+          workLog.blockers ?? ''
+        ]
+      );
 
     const csvContent = [
       headers,
@@ -255,13 +282,14 @@ export class ReportComponent implements OnInit {
       )
       .join('\r\n');
 
-    const blob = new Blob(
-      [csvContent],
-      {
-        type:
-          'text/csv;charset=utf-8;'
-      }
-    );
+    const blob =
+      new Blob(
+        [csvContent],
+        {
+          type:
+            'text/csv;charset=utf-8;'
+        }
+      );
 
     const downloadUrl =
       URL.createObjectURL(blob);
@@ -269,7 +297,8 @@ export class ReportComponent implements OnInit {
     const anchor =
       document.createElement('a');
 
-    anchor.href = downloadUrl;
+    anchor.href =
+      downloadUrl;
 
     anchor.download =
       `work-report-${report.fromDate.slice(0, 10)}` +
@@ -277,7 +306,9 @@ export class ReportComponent implements OnInit {
 
     anchor.click();
 
-    URL.revokeObjectURL(downloadUrl);
+    URL.revokeObjectURL(
+      downloadUrl
+    );
   }
 
   getStatusClass(
@@ -287,42 +318,79 @@ export class ReportComponent implements OnInit {
   }
 
   private loadFilterOptions(): void {
+
+    // Employees are filtered by backend role
     this.http
       .get<EmployeeOption[]>(
-        this.employeeApiUrl
+        this.employeeOptionsUrl
       )
       .subscribe({
         next: employees => {
+          const activeEmployees =
+            employees.filter(
+              employee => employee.isActive
+            );
+
           this.employees.set(
-            employees.filter(employee =>
-              employee.isActive
-            )
+            activeEmployees
           );
+
+          if (activeEmployees.length === 1) {
+            this.reportForm.controls
+              .employeeId
+              .setValue(
+                activeEmployees[0].id
+              );
+
+            this.loadReport();
+          }
         },
 
-        error: () => {
-          // Employee users may not have access
-          // to the complete employee list.
+        error: (
+          error: HttpErrorResponse
+        ) => {
+          console.error(
+            'Employee report option error:',
+            error
+          );
+
           this.employees.set([]);
+
+          if (error.status === 403) {
+            this.errorMessage.set(
+              'You do not have permission to load report employees.'
+            );
+          } else {
+            this.errorMessage.set(
+              error.error?.message ??
+                'Unable to load report employees.'
+            );
+          }
         }
       });
 
+    // Load project filter options
     this.http
       .get<ProjectOption[]>(
-        this.projectApiUrl
+        this.projectsUrl
       )
       .subscribe({
         next: projects => {
           this.projects.set(
-            projects.filter(project =>
-              project.isActive
+            projects.filter(
+              project => project.isActive
             )
           );
         },
 
-        error: () => {
-          // The report still works without
-          // the optional project dropdown.
+        error: (
+          error: HttpErrorResponse
+        ) => {
+          console.error(
+            'Project loading error:',
+            error
+          );
+
           this.projects.set([]);
         }
       });
@@ -336,7 +404,8 @@ export class ReportComponent implements OnInit {
 
   private getFirstDayOfCurrentMonth():
     string {
-    const today = new Date();
+    const today =
+      new Date();
 
     return this.formatInputDate(
       new Date(
@@ -354,12 +423,20 @@ export class ReportComponent implements OnInit {
       date.getFullYear();
 
     const month =
-      String(date.getMonth() + 1)
-        .padStart(2, '0');
+      String(
+        date.getMonth() + 1
+      ).padStart(
+        2,
+        '0'
+      );
 
     const day =
-      String(date.getDate())
-        .padStart(2, '0');
+      String(
+        date.getDate()
+      ).padStart(
+        2,
+        '0'
+      );
 
     return `${year}-${month}-${day}`;
   }
@@ -368,7 +445,10 @@ export class ReportComponent implements OnInit {
     value: string
   ): string {
     const escaped =
-      value.replace(/"/g, '""');
+      value.replace(
+        /"/g,
+        '""'
+      );
 
     return `"${escaped}"`;
   }
